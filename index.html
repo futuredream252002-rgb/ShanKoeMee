@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ONE PIECE SIGNAL</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <button class="btn btn-start" onclick="sendAction('START')">🏴‍☠️ START</button>
+            <button class="btn btn-stop" onclick="sendAction('STOP')">🤕 STOP</button>
+        </div>
+
+        <button class="btn btn-purple" onclick="sendAction('TRX ACTIVE')">👩‍🦰 TRX ACTIVE</button>
+
+        <div class="row">
+            <button class="btn btn-purple" onclick="sendAction('KEY DURATION')">🏾 KEY DURATION</button>
+            <button class="btn btn-purple" onclick="sendAction('KEY ရယူရန်')">🧜‍♀️ KEYရယူရန်</button>
+        </div>
+
+        <div class="row">
+            <button class="btn btn-purple" onclick="sendAction('HISTORY')">🧝‍♀️ HISTORY</button>
+            <button class="btn btn-purple" onclick="sendAction('FEEDBACK')">🧞‍♂️ FEEDBACK</button>
+        </div>
+
+        <div class="row">
+            <button class="btn btn-purple" onclick="sendAction('Pai\'s Strategy')">🧛 Pai's Strategy</button>
+            <button class="btn btn-purple" onclick="sendAction('WINGO MODE')">💃 WINGO MODE</button>
+        </div>
+
+        <button class="btn btn-purple" onclick="sendAction('Admin Panel')">🙋‍♂️ Admin Panel</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
