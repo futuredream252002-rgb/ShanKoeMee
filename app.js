@@ -129,25 +129,21 @@ function handleUnifiedFileSelect() {
     
     if (extension === 'js') {
         detectedType = 'js';
-        
         panel.classList.remove('hidden-runner');
         panel.className = "box box-runner box-js-active";
         title.innerHTML = "📦 Node.js Ready to Run";
         runBtn.className = "run-btn run-btn-js";
         runBtn.textContent = "▶️ Run Start (Node.js)";
         runBtn.classList.remove('hidden');
-        
         setupFileData('js', file);
     } else if (extension === 'py') {
         detectedType = 'py';
-        
         panel.classList.remove('hidden-runner');
         panel.className = "box box-runner box-py-active";
         title.innerHTML = "🐍 Python Ready to Run";
         runBtn.className = "run-btn run-btn-py";
         runBtn.textContent = "▶️ Run Start (Python)";
         runBtn.classList.remove('hidden');
-        
         setupFileData('py', file);
     } else {
         showToast('❌ .js သို့မဟုတ် .py file သာ လက်ခံပါသည်', 'error');
@@ -213,8 +209,7 @@ async function autoLoginVPS() {
     } catch (err) {
         console.error(err);
         if (connStatus) {
-            connStatus.innerHTML =
-                '⚠️ Network Error!<br /><span style="font-size:14px; color:#f38ba8;">Backend Server သို့ ချိတ်ဆက်မရပါ။</span>';
+            connStatus.innerHTML = '⚠️ Network Error!<br /><span style="font-size:14px; color:#f38ba8;">Backend Server သို့ ချိတ်ဆက်မရပါ။</span>';
         }
     }
 }
@@ -349,8 +344,7 @@ async function loadActivePM2Processes() {
         updateUploadUIState(processes, maxAllowed);
 
         if (processes.length === 0) {
-            tbody.innerHTML =
-                '<tr><td colspan="3" style="text-align:center; color:#cdd6f4; padding:24px;">📭 မည်သည့် PM2 process မှ Run မထားပါ။</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#cdd6f4; padding:24px;">📭 မည်သည့် PM2 process မှ Run မထားပါ။</td></tr>';
             return;
         }
 
@@ -373,8 +367,7 @@ async function loadActivePM2Processes() {
         });
     } catch (err) {
         console.error('Load processes error:', err);
-        tbody.innerHTML =
-            `<tr><td colspan="3" style="text-align:center; color:#f38ba8; padding:24px;">❌ Server Connection Error: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#f38ba8; padding:24px;">❌ Server Connection Error: ${err.message}</td></tr>`;
     }
 }
 
