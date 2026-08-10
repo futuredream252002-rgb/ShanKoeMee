@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VPS Smart Nano Runner · Compact UI</title>
+    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+    <div class="container">
+        <div class="main-content" id="main-content">
+            <div class="fixed-top">
+                <div id="login-section">
+                    <h2>🚀 VPS Server Status</h2>
+                    <div id="connecting-status">
+                        <div class="spinner"></div><br />Connecting to Dedicated Server...
+                    </div>
+                </div>
+
+                <div id="dashboard-section" class="hidden">
+                    <div id="device-id-container" onclick="copyDeviceId()">
+                        <div>
+                            <span style="display:block; color:#a6adc8; font-size:13px;">🆔 Device ID (Click to Copy)</span>
+                            <strong id="device-id-display" style="color:#89b4fa; font-family:monospace; font-size:17px;">Loading...</strong>
+                        </div>
+                    </div>
+
+                    <!-- Main File Picker Box -->
+                    <div id="file-selector-box" class="box" style="border-left: 8px solid #89b4fa; margin-bottom: 8px;">
+                        <h4>📂 Select Bot File (.js / .py)</h4>
+                        <input type="file" id="unified-file" accept=".js,.py" onchange="handleUnifiedFileSelect()" />
+                    </div>
+
+                    <!-- Dynamic Single Runner Panel (Initially Hidden via hidden-runner class) -->
+                    <div id="runner-panel" class="box box-runner hidden-runner">
+                        <h4 id="runner-title">🤖 Bot Runner Panel</h4>
+                        
+                        <!-- Dynamic Run Button -->
+                        <button id="dynamic-run-btn" class="run-btn hidden" onclick="triggerExecution()">▶️ Run Start</button>
+                        
+                        <!-- Limit Notices -->
+                        <div id="running-notice-section" class="running-notice compact-running hidden">
+                            ⚠️ <strong>Admin သတ်မှတ်ထားသော File Limit ပြည့်သွားပါပြီ။</strong><br />
+                            File အသစ် ပြန်တင်နိုင်ရန် Run ထားသော Process ကို Delete လုပ်ပေးပါ။
+                        </div>
+                    </div>
+
+                    <div class="status" id="status"></div>
+                </div>
+            </div>
+
+            <div id="dashboard-section-table" class="hidden">
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Process Name</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list">
+                            <tr><td colspan="3" style="text-align:center; color:#cdd6f4; padding:24px;">Loading processes...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="logs-page" id="logs-page">
+            <div class="logs-header">
+                <h3 id="logs-title">📋 Logs</h3>
+                <div>
+                    <button class="btn-back" style="background:#89b4fa; color:#11111b; margin-right:6px;" onclick="refreshLogs()">🔄 Refresh</button>
+                    <button class="btn-back" onclick="closeLogs()">⬅️ Back</button>
+                </div>
+            </div>
+            <div class="logs-content" id="logs-content">
+                <div style="color:#89b4fa; text-align:center; padding:40px 0;">⏳ Loading logs...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
