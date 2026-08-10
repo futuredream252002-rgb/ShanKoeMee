@@ -197,7 +197,11 @@ async function autoLoginVPS() {
     try {
         const res = await fetch(`${BACKEND_URL}/api/verify-vps`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify({ ip: SERVER_IP, username: SERVER_USER, password: SERVER_PASS })
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -214,7 +218,7 @@ async function autoLoginVPS() {
         console.error(err);
         if (connStatus) {
             connStatus.innerHTML =
-                '⚠️ Network Error!<br /><span style="font-size:14px; color:#f38ba8;">Backend Server သို့ ချိတ်ဆက်မရပါ။</span>';
+                '⚠️ Network Error / Mixed Content Block!<br /><span style="font-size:14px; color:#f38ba8;">Chrome လုံခြုံရေးကြောင့် HTTP ကို ပိတ်ထားခြင်းဖြစ်နိုင်ပါသည်။ XBrowser သို့မဟုတ် HTTPS ကိုပြောင်းပါ။</span>';
         }
     }
 }
@@ -258,7 +262,11 @@ async function runFile(type) {
 
         const saveRes = await fetch(`${BACKEND_URL}/api/save-file`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify({
                 botType: type,
                 fileName,
@@ -283,7 +291,11 @@ async function runFile(type) {
 
         const runRes = await fetch(`${BACKEND_URL}/api/run-file`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify({
                 botType: type,
                 fileName,
@@ -332,7 +344,11 @@ async function loadActivePM2Processes() {
 
         const res = await fetch(`${BACKEND_URL}/api/get-pm2-list`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify({
                 deviceId: deviceId,
                 ip: SERVER_IP,
@@ -385,7 +401,11 @@ async function deleteProcess(processId, projectName) {
 
         const res = await fetch(`${BACKEND_URL}/api/history/${processId}`, {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify({
                 name: projectName,
                 deviceId: deviceId,
@@ -431,7 +451,11 @@ async function fetchLogs(projectName) {
 
         const res = await fetch(`${BACKEND_URL}/api/logs`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify({
                 projectName,
                 deviceId: deviceId,
