@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI ဗီဒီယို မြန်မာစာတန်းထိုး စတူဒီယို (Free AI Translation)</title>
+    <title>AI ဗီဒီယို မြန်မာစာတန်းထိုး စတူဒီယို (Multi-Key Rotation)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -20,14 +20,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        progress::-webkit-progress-value {
-            background-color: #38bdf8;
-            border-radius: 9999px;
-        }
-        progress::-webkit-progress-bar {
-            background-color: #334155;
-            border-radius: 9999px;
-        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
@@ -36,26 +28,34 @@
         <!-- Header -->
         <div class="flex items-center justify-between bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
             <div class="flex items-center gap-3">
-                <div class="bg-emerald-600 p-2.5 rounded-xl">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path></svg>
+                <div class="bg-sky-600 p-2.5 rounded-xl">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path></svg>
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-white">AI ဗီဒီယို မြန်မာစာတန်းထိုး စတူဒီယို</h1>
-                    <p class="text-xs text-slate-400">Whisper + Free AI Translation (API Key မလိုပါ)</p>
+                    <p class="text-xs text-slate-400">Auto Key Rotation (Error တက်လျှင် သော့အသစ်ဖြင့် အလိုအလျောက်ပြောင်းပေးမည်)</p>
                 </div>
             </div>
+            <button onclick="toggleApiModal()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-slate-200 border border-slate-600">
+                ⚙️ API Keys စီမံရန်
+            </button>
         </div>
 
-        <!-- Info Box -->
-        <div class="bg-emerald-950/40 border border-emerald-700/50 p-4 rounded-xl text-xs text-emerald-200 leading-relaxed">
-            ✨ <strong>အသိပေးချက် -</strong> ဤဗားရှင်းတွင် API Key ထည့်ရန် မလိုတော့ဘဲ အခမဲ့ အများသုံး AI ဘာသာပြန်စနစ်ကို အသုံးပြုထားပါသည်။ (မော်ဒယ်အသစ် အသုံးပြုထားသဖြင့် Error မတက်တော့ပါ)
+        <!-- API Key Modal -->
+        <div id="apiModal" class="hidden bg-slate-800 p-4 rounded-2xl border border-sky-500/50 space-y-3">
+            <label class="block text-sm font-medium text-sky-300">API Keys စာရင်း (တစ်ကြောင်းလျှင် တစ်ခုစီ ထည့်ပါ)</label>
+            <textarea id="apiKeyInput" rows="5" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-sky-500"></textarea>
+            <div class="flex justify-between items-center">
+                <p id="keyCount" class="text-xs text-slate-400">သော့အရေအတွက်:</p>
+                <button onclick="saveApiKeys()" class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-xl text-sm font-medium">သိမ်းမည်</button>
+            </div>
         </div>
 
         <!-- Upload Section -->
         <div class="bg-slate-800/60 p-6 rounded-2xl border border-slate-700 space-y-4">
-            <div class="border-2 border-dashed border-slate-600 rounded-xl p-6 text-center hover:border-emerald-500 transition cursor-pointer" onclick="document.getElementById('mediaInput').click()">
+            <div class="border-2 border-dashed border-slate-600 rounded-xl p-6 text-center hover:border-sky-500 transition cursor-pointer" onclick="document.getElementById('mediaInput').click()">
                 <input type="file" id="mediaInput" accept="video/*,audio/*" class="hidden" onchange="handleFileSelect(event)">
-                <svg class="w-10 h-10 text-emerald-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <svg class="w-10 h-10 text-sky-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                 <p id="fileNameDisplay" class="text-sm font-medium text-slate-200">Video သို့မဟုတ် Audio ဖိုင်ကို ဤနေရာတွင် ရွေးချယ်ပါ</p>
                 <p class="text-xs text-slate-400 mt-1">MP4, MKV, MOV, MP3, WAV ဖိုင်များ ရပါသည်</p>
             </div>
@@ -63,22 +63,35 @@
             <!-- Video Preview -->
             <video id="videoPreview" controls class="hidden w-full rounded-xl max-h-64 bg-black"></video>
 
+            <!-- Mode Selection -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-700 bg-slate-900/50 cursor-pointer">
+                    <input type="radio" name="mode" value="bilingual" checked class="accent-sky-500 w-4 h-4">
+                    <div>
+                        <div class="text-sm font-medium">မူရင်းဘာသာစကား + မြန်မာ</div>
+                        <div class="text-xs text-slate-400">နှစ်မျိုးလုံး ယှဉ်တွဲဖော်ပြမည်</div>
+                    </div>
+                </label>
+                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-700 bg-slate-900/50 cursor-pointer">
+                    <input type="radio" name="mode" value="myanmar_only" class="accent-sky-500 w-4 h-4">
+                    <div>
+                        <div class="text-sm font-medium">မြန်မာဘာသာ သီးသန့်</div>
+                        <div class="text-xs text-slate-400">မြန်မာစာသားတစ်မျိုးတည်း ထုတ်ပေးမည်</div>
+                    </div>
+                </label>
+            </div>
+
             <!-- Process Button -->
-            <button id="generateBtn" onclick="processMedia()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                <span>✨ မြန်မာစာသား စတင်ထုတ်ယူမည်</span>
+            <button id="generateBtn" onclick="processMedia()" class="w-full bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-semibold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                <span>✨ AI ဖြင့် မြန်မာစာသား စတင်ထုတ်ယူမည် (Auto Key Rotate)</span>
             </button>
         </div>
 
-        <!-- Status / Progress Box -->
-        <div id="statusBox" class="hidden bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center space-y-4">
+        <!-- Status / Error Box -->
+        <div id="statusBox" class="hidden bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center space-y-3">
             <div id="spinner" class="loader ease-linear rounded-full border-4 border-t-4 border-slate-600 h-10 w-10 mx-auto"></div>
-            <p id="statusTitle" class="text-base font-semibold text-emerald-300">စတင်လုပ်ဆောင်နေပါသည်...</p>
-            <p id="statusDesc" class="text-xs text-slate-400">ခဏစောင့်ပါ...</p>
-            
-            <div id="progressContainer" class="hidden w-full max-w-md mx-auto pt-2">
-                <progress id="downloadProgress" value="0" max="100" class="w-full h-2"></progress>
-                <p id="progressText" class="text-xs text-slate-400 mt-1">0%</p>
-            </div>
+            <p id="statusTitle" class="text-base font-semibold text-sky-300">လုပ်ဆောင်နေပါသည်...</p>
+            <p id="statusDesc" class="text-xs text-slate-400">အသံဖိုင်ကို ပြင်ဆင်နေပါသည်...</p>
         </div>
 
         <!-- Output Section -->
@@ -88,26 +101,62 @@
                 <div class="flex gap-2">
                     <button onclick="copyTranscript()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg">📋 ကူးယူမည်</button>
                     <button onclick="downloadFile('txt')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg">💾 TXT သိမ်းမည်</button>
-                    <button onclick="downloadFile('srt')" class="text-xs bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded-lg font-medium">🎬 SRT စာတန်းထိုး သိမ်းမည်</button>
+                    <button onclick="downloadFile('srt')" class="text-xs bg-sky-600 hover:bg-sky-500 px-3 py-2 rounded-lg font-medium">🎬 SRT စာတန်းထိုး သိမ်းမည်</button>
                 </div>
             </div>
 
             <div id="transcriptList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                <!-- Transcript items -->
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-
-        env.allowLocalModels = false;
-        env.useBrowserCache = true;
-
-        let transcriber = null;
+    <script>
         let selectedFile = null;
         let transcriptData = [];
 
-        window.handleFileSelect = function(event) {
+        // Default provided API keys list
+        const defaultKeys = [
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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",
+            "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"
+        ];
+
+        window.onload = () => {
+            let savedKeys = JSON.parse(localStorage.getItem('openrouter_keys_list'));
+            if (!savedKeys || savedKeys.length === 0) {
+                savedKeys = defaultKeys;
+                localStorage.setItem('openrouter_keys_list', JSON.stringify(savedKeys));
+            }
+            document.getElementById('apiKeyInput').value = savedKeys.join('\n');
+            updateKeyCount(savedKeys.length);
+        };
+
+        function toggleApiModal() {
+            document.getElementById('apiModal').classList.toggle('hidden');
+        }
+
+        function saveApiKeys() {
+            const text = document.getElementById('apiKeyInput').value;
+            const keys = text.split('\n').map(k => k.trim()).filter(k => k.length > 0);
+            localStorage.setItem('openrouter_keys_list', JSON.stringify(keys));
+            updateKeyCount(keys.length);
+            alert('API Keys များ သိမ်းဆည်းပြီးပါပြီ။ (စုစုပေါင်း ' + keys.length + ' ခု)');
+            toggleApiModal();
+        }
+
+        function updateKeyCount(count) {
+            document.getElementById('keyCount').textContent = `သော့အရေအတွက်: ${count} ခု`;
+        }
+
+        function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
             selectedFile = file;
@@ -120,39 +169,143 @@
             } else {
                 videoPreview.classList.add('hidden');
             }
-        };
-
-        // Free Translation via LibreTranslate Public API
-        async function freeAiTranslate(text, sourceLang) {
-            if (!text.trim()) return "";
-            if (sourceLang === 'my') return text;
-
-            try {
-                // အခြား အလုပ်လုပ်နေသော Public API တစ်ခုကို အသုံးပြုထားပါသည်
-                const response = await fetch("https://translate.terraprint.co/translate", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        q: text,
-                        source: sourceLang && sourceLang !== 'auto' ? sourceLang : "auto",
-                        target: "my",
-                        format: "text"
-                    }),
-                    headers: { "Content-Type": "application/json" }
-                });
-
-                const data = await response.json();
-                if (data && data.translatedText) {
-                    return data.translatedText;
-                }
-            } catch (err) {
-                console.error("Free translate error, falling back:", err);
-            }
-            return text; // Fallback if API fails
         }
 
-        window.processMedia = async function() {
+        async function extractCompressedAudio(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const decodedAudio = await audioCtx.decodeAudioData(arrayBuffer);
+
+            const targetSampleRate = 16000;
+            const offlineCtx = new OfflineAudioContext(1, decodedAudio.duration * targetSampleRate, targetSampleRate);
+            const source = offlineCtx.createBufferSource();
+            source.buffer = decodedAudio;
+            source.connect(offlineCtx.destination);
+            source.start();
+
+            const renderedBuffer = await offlineCtx.startRendering();
+            const wavBlob = audioBufferToWav(renderedBuffer);
+            return await blobToBase64(wavBlob);
+        }
+
+        function audioBufferToWav(buffer) {
+            const numOfChan = 1;
+            const length = buffer.length * numOfChan * 2 + 44;
+            const out = new ArrayBuffer(length);
+            const view = new DataView(out);
+            const sampleRate = buffer.sampleRate;
+            let pos = 0;
+
+            function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+            function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+            setUint32(0x46464952); // "RIFF"
+            setUint32(length - 8);
+            setUint32(0x45564157); // "WAVE"
+            setUint32(0x20746d66); // "fmt "
+            setUint32(16);
+            setUint16(1);
+            setUint16(numOfChan);
+            setUint32(sampleRate);
+            setUint32(sampleRate * 2 * numOfChan);
+            setUint16(numOfChan * 2);
+            setUint16(16);
+            setUint32(0x61746164); // "data"
+            setUint32(length - pos - 4);
+
+            const channelData = buffer.getChannelData(0);
+            for (let i = 0; i < channelData.length; i++) {
+                let sample = Math.max(-1, Math.min(1, channelData[i]));
+                sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                view.setInt16(pos, sample, true);
+                pos += 2;
+            }
+            return new Blob([out], { type: 'audio/wav' });
+        }
+
+        function blobToBase64(blob) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // Rotate & Fetch with multiple keys automatically
+        async function fetchWithKeyRotation(base64Audio, promptText) {
+            let keys = JSON.parse(localStorage.getItem('openrouter_keys_list')) || defaultKeys;
+            if (keys.length === 0) throw new Error("API Key တစ်ခုမှ မရှိပါ။ ကျေးဇူးပြု၍ API Key ထည့်ပါ။");
+
+            let lastError = null;
+
+            for (let i = 0; i < keys.length; i++) {
+                let currentKey = keys[i];
+                let isOriginalOpenAI = currentKey.startsWith('sk-proj-');
+                
+                let endpoint = "https://openrouter.ai/api/v1/chat/completions";
+                let modelName = "google/gemini-2.5-flash";
+                let headers = {
+                    'Authorization': `Bearer ${currentKey}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': window.location.href,
+                    'X-Title': 'Myanmar Video Transcript'
+                };
+
+                // If user put an OpenAI key directly instead of OpenRouter
+                if (isOriginalOpenAI) {
+                    endpoint = "https://api.openai.com/v1/chat/completions";
+                    modelName = "gpt-4o";
+                    headers = {
+                        'Authorization': `Bearer ${currentKey}`,
+                        'Content-Type': 'application/json'
+                    };
+                }
+
+                try {
+                    console.log(`Trying API Key index ${i + 1} (${currentKey.substring(0, 10)}...)`);
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({
+                            model: modelName,
+                            messages: [
+                                {
+                                    role: "user",
+                                    content: [
+                                        { type: "text", text: promptText },
+                                        { 
+                                            type: "image_url", 
+                                            image_url: { url: `data:audio/wav;base64,${base64Audio}` } 
+                                        }
+                                    ]
+                                }
+                            ]
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        throw new Error(data.error.message || JSON.stringify(data.error));
+                    }
+
+                    // Success! Return content
+                    return data.choices[0].message.content;
+
+                } catch (err) {
+                    console.warn(`Key #${i+1} failed:`, err.message);
+                    lastError = err;
+                    // Continue to next key in loop (Rotation)
+                }
+            }
+
+            throw new Error("API Keys အားလုံး Limit ပြည့်သွားပါပြီ သို့မဟုတ် အလုပ်မလုပ်ပါ။ (LastError: " + (lastError ? lastError.message : "Unknown") + ")");
+        }
+
+        async function processMedia() {
             if (!selectedFile) {
-                alert('ကျေးဇူးပြု၍ ဖိုင် တစ်ခုခု အရင်ရွေးချယ်ပေးပါ။');
+                alert('ကျေးဇူးပြု၍ Video သို့မဟုတ် Audio ဖိုင် တစ်ခုခု အရင်ရွေးချယ်ပေးပါ။');
                 return;
             }
 
@@ -161,114 +314,40 @@
             const statusDesc = document.getElementById('statusDesc');
             const resultSection = document.getElementById('resultSection');
             const generateBtn = document.getElementById('generateBtn');
-            const progressContainer = document.getElementById('progressContainer');
-            const downloadProgress = document.getElementById('downloadProgress');
-            const progressText = document.getElementById('progressText');
-            const spinner = document.getElementById('spinner');
 
             statusBox.classList.remove('hidden');
             resultSection.classList.add('hidden');
             generateBtn.disabled = true;
             generateBtn.classList.add('opacity-50');
-            progressContainer.classList.add('hidden');
-            spinner.classList.remove('hidden');
 
             try {
-                statusTitle.textContent = "၁။ AI Model ကို ပြင်ဆင်နေပါသည်...";
-                statusDesc.textContent = "ပထမဆုံးအကြိမ်ဖြစ်ပါက ဒေါင်းလုဒ်ဆွဲရန် လိုအပ်ပါသည်။";
-
-                if (!transcriber) {
-                    progressContainer.classList.remove('hidden');
-                    
-                    // Xenova/whisper-tiny အစား onnx-community/whisper-tiny.en ကို အသုံးပြုထားပါသည်
-                    transcriber = await pipeline('automatic-speech-recognition', 'onnx-community/whisper-tiny', {
-                        progress_callback: (progress) => {
-                            if (progress.status === 'progress') {
-                                const percent = Math.round((progress.loaded / progress.total) * 100);
-                                downloadProgress.value = percent;
-                                progressText.textContent = `ဒေါင်းလုဒ်ဆွဲနေသည်... ${percent}%`;
-                            } else if (progress.status === 'done') {
-                                progressText.textContent = "ဒေါင်းလုဒ် ပြီးစီးပါပြီ။";
-                            }
-                        }
-                    });
-                    
-                    progressContainer.classList.add('hidden');
-                }
-
-                statusTitle.textContent = "၂။ အသံဖိုင်ကို ခွဲထုတ်နေပါသည်...";
-                statusDesc.textContent = "ဗီဒီယိုထဲမှ အသံကို ရယူနေပါသည်...";
+                statusTitle.textContent = "၁။ အသံဖိုင်ကို စစ်ထုတ် ပြင်ဆင်နေပါသည်...";
+                statusDesc.textContent = "ဖိုင်ဆိုဒ်သေးငယ်စေရန် အသံသီးသန့် ပြောင်းလဲနေပါသည်...";
                 
-                const arrayBuffer = await selectedFile.arrayBuffer();
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const decodedAudio = await audioCtx.decodeAudioData(arrayBuffer);
+                const base64Audio = await extractCompressedAudio(selectedFile);
 
-                const targetSampleRate = 16000;
-                const offlineCtx = new OfflineAudioContext(1, decodedAudio.duration * targetSampleRate, targetSampleRate);
-                const source = offlineCtx.createBufferSource();
-                source.buffer = decodedAudio;
-                source.connect(offlineCtx.destination);
-                source.start();
-                const renderedBuffer = await offlineCtx.startRendering();
+                statusTitle.textContent = "၂။ AI စနစ်ဖြင့် အသံနားထောင်ပြီး ဘာသာပြန်နေပါသည် (Auto Key Rotation)...";
+                statusDesc.textContent = "Key တစ်ခု Limit ပြည့်ပါက နောက်တစ်ခုသို့ အလိုအလျောက် ပြောင်းလဲပေးနေပါသည်...";
+
+                const prompt = `Listen to this audio carefully. Detect the spoken language(s) and transcribe everything accurately with timestamps. Translate every single spoken line into natural, fluent Burmese (Myanmar language).
+                Return ONLY a valid JSON array with no markdown formatting, using this exact structure:
+                [
+                  {
+                    "start": "00:00:01,000",
+                    "end": "00:00:05,000",
+                    "displayTime": "00:01 - 00:05",
+                    "seconds": 1,
+                    "original": "Original spoken text here",
+                    "myanmar": "မြန်မာဘာသာပြန် စာသား"
+                  }
+                ]`;
+
+                let rawText = await fetchWithKeyRotation(base64Audio, prompt);
                 
-                const audioData = renderedBuffer.getChannelData(0);
-
-                statusTitle.textContent = "၃။ AI ဖြင့် မူရင်းစာသား ထုတ်ယူနေပါသည်...";
-                statusDesc.textContent = "ဘာသာစကားကို ဖတ်ယူနေပါသည်...";
-
-                const output = await transcriber(audioData, {
-                    chunk_length_s: 30,
-                    stride_length_s: 5,
-                    return_timestamps: true,
-                    language: null // Auto detect
-                });
-
-                statusTitle.textContent = "၄။ အခမဲ့ AI စနစ်ဖြင့် မြန်မာဘာသာသို့ ဘာသာပြန်နေပါသည်...";
-                statusDesc.textContent = "စာသားများကို ဘာသာပြန်ဆိုနေပါသည်...";
-
-                transcriptData = [];
-                const sourceLang = output.language || 'auto';
-
-                if (output.chunks && output.chunks.length > 0) {
-                    for (let i = 0; i < output.chunks.length; i++) {
-                        const chunk = output.chunks[i];
-                        const start = chunk.timestamp[0] || 0;
-                        const end = chunk.timestamp[1] || start + 2;
-                        
-                        const formatTime = (sec) => {
-                            const h = Math.floor(sec / 3600).toString().padStart(2, '0');
-                            const m = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
-                            const s = Math.floor(sec % 60).toString().padStart(2, '0');
-                            const ms = Math.floor((sec % 1) * 1000).toString().padStart(3, '0');
-                            return `${h}:${m}:${s},${ms}`;
-                        };
-
-                        const formatDisplay = (sec) => {
-                            const m = Math.floor(sec / 60).toString().padStart(2, '0');
-                            const s = Math.floor(sec % 60).toString().padStart(2, '0');
-                            return `${m}:${s}`;
-                        };
-
-                        const myanmarText = await freeAiTranslate(chunk.text, sourceLang);
-
-                        transcriptData.push({
-                            start: formatTime(start),
-                            end: formatTime(end),
-                            displayTime: `${formatDisplay(start)} - ${formatDisplay(end)}`,
-                            seconds: start,
-                            text: myanmarText
-                        });
-                    }
-                } else {
-                    const myanmarText = await freeAiTranslate(output.text, sourceLang);
-                    transcriptData.push({
-                        start: "00:00:00,000",
-                        end: "00:00:05,000",
-                        displayTime: "00:00 - 00:05",
-                        seconds: 0,
-                        text: myanmarText
-                    });
-                }
+                // Clean up markdown block if model wraps json in ```json ... ```
+                rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+                
+                transcriptData = JSON.parse(rawText);
 
                 renderTranscript();
                 statusBox.classList.add('hidden');
@@ -281,58 +360,69 @@
             } finally {
                 generateBtn.disabled = false;
                 generateBtn.classList.remove('opacity-50');
-                spinner.classList.add('hidden');
             }
-        };
+        }
 
         function renderTranscript() {
             const list = document.getElementById('transcriptList');
+            const mode = document.querySelector('input[name="mode"]:checked').value;
             list.innerHTML = '';
 
             transcriptData.forEach(item => {
                 const div = document.createElement('div');
-                div.className = "bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/80 hover:border-emerald-500/50 transition";
+                div.className = "bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/80 hover:border-sky-500/50 transition";
                 div.innerHTML = `
                     <div class="flex items-center justify-between mb-1">
-                        <button onclick="seekVideo(${item.seconds})" class="text-xs font-mono text-emerald-400 hover:underline bg-emerald-950/50 px-2 py-0.5 rounded">
+                        <button onclick="seekVideo(${item.seconds})" class="text-xs font-mono text-sky-400 hover:underline bg-sky-950/50 px-2 py-0.5 rounded">
                             ▶ ${item.displayTime}
                         </button>
                     </div>
-                    <p class="text-sm text-white leading-relaxed">${item.text}</p>
+                    ${mode === 'bilingual' ? `<p class="text-xs text-slate-400 mb-1">${item.original}</p>` : ''}
+                    <p class="text-sm text-white leading-relaxed">${item.myanmar}</p>
                 `;
                 list.appendChild(div);
             });
         }
 
-        window.seekVideo = function(seconds) {
+        function seekVideo(seconds) {
             const video = document.getElementById('videoPreview');
             if (!video.classList.contains('hidden')) {
                 video.currentTime = seconds;
                 video.play();
             }
-        };
+        }
 
-        window.copyTranscript = function() {
-            const text = transcriptData.map(item => `[${item.displayTime}] ${item.text}`).join('\n\n');
+        function copyTranscript() {
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            const text = transcriptData.map(item => 
+                mode === 'bilingual' ? `[${item.displayTime}]\n${item.original}\n${item.myanmar}` : `[${item.displayTime}] ${item.myanmar}`
+            ).join('\n\n');
             navigator.clipboard.writeText(text);
             alert('စာသားအားလုံးကို ကူးယူပြီးပါပြီ။');
-        };
+        }
 
-        window.downloadFile = function(type) {
+        function downloadFile(type) {
+            const mode = document.querySelector('input[name="mode"]:checked').value;
             let content = '';
+            
             if (type === 'srt') {
-                content = transcriptData.map((item, idx) => `${idx + 1}\n${item.start} --> ${item.end}\n${item.text}`).join('\n\n');
+                content = transcriptData.map((item, idx) => {
+                    const text = mode === 'bilingual' ? `${item.myanmar}\n${item.original}` : item.myanmar;
+                    return `${idx + 1}\n${item.start} --> ${item.end}\n${text}`;
+                }).join('\n\n');
             } else {
-                content = transcriptData.map(item => `[${item.displayTime}] ${item.text}`).join('\n\n');
+                content = transcriptData.map(item => 
+                    mode === 'bilingual' ? `[${item.displayTime}]\n${item.original}\n${item.myanmar}` : `[${item.displayTime}] ${item.myanmar}`
+                ).join('\n\n');
             }
 
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `myanmar_subtitle_free.${type}`;
+            a.download = `myanmar_transcript.${type}`;
             a.click();
-        };
+        }
     </script>
 </body>
 </html>
