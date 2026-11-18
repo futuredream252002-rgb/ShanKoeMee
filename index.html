@@ -8,8 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans Myanmar', sans-serif; background-color: #0f172a; color: #f8fafc; }
-        .loader { border-top-color: #38bdf8; animation: spinner 1s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .circle-progress {
             --size: 100px; --stroke-width: 8px; --progress: 0;
             position: relative; width: var(--size); height: var(--size);
@@ -25,8 +23,6 @@
             position: relative; z-index: 1; font-size: 20px; font-weight: 600; color: #38bdf8;
         }
         .circle-progress.done { background: #38bdf8; }
-        .voice-btn { transition: all 0.2s; }
-        .voice-btn.selected { opacity: 0.3; pointer-events: none; }
         .transcript-edit:focus { outline: 2px solid #38bdf8; border-radius: 6px; }
     </style>
 </head>
@@ -40,7 +36,7 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold text-white">AI ဗီဒီယို ဇာတ်ကြောင်းပြော (Narrative) စတူဒီယို</h1>
-                <p class="text-xs text-slate-400">Gemini Perfect Sync Narrative + Google Free TTS</p>
+                <p class="text-xs text-slate-400">Gemini Perfect Sync + Scene Audio Player</p>
             </div>
         </div>
         <button onclick="toggleApiModal()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-slate-200 border border-slate-600">⚙️ Gemini API Key</button>
@@ -92,25 +88,8 @@
             </div>
         </div>
 
-        <!-- Voice Generation Button -->
-        <div class="flex gap-3 justify-center py-2">
-            <button id="btnGenVoice" onclick="generateGoogleVoice()" class="voice-btn bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 py-3 rounded-xl shadow-lg flex items-center gap-2">
-                🔊 အသံဖိုင်ထုတ်မည် (Google Free TTS)
-            </button>
-        </div>
-
-        <!-- Transcript List (Editable) -->
-        <div id="transcriptList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2"></div>
-    </div>
-
-    <!-- Voice Result -->
-    <div id="voiceResult" class="hidden bg-slate-800/80 p-4 rounded-2xl border border-emerald-500/50 space-y-3">
-        <h3 class="text-sm font-bold text-emerald-300">🎧 ထွက်ရှိလာသော မြန်မာအသံဖိုင်</h3>
-        <audio id="voicePlayer" controls class="w-full"></audio>
-        <div class="flex gap-2">
-            <a id="downloadVoiceBtn" class="text-xs bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded-lg text-white font-medium inline-block text-center cursor-pointer">💾 အသံဖိုင် သိမ်းမည် (WAV)</a>
-            <button onclick="document.getElementById('voiceResult').classList.add('hidden')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-white">ပိတ်မည်</button>
-        </div>
+        <!-- Transcript List (Editable & Per-Scene Audio) -->
+        <div id="transcriptList" class="space-y-3 max-h-[550px] overflow-y-auto pr-2"></div>
     </div>
 </div>
 
@@ -290,14 +269,14 @@
                 }
             }, 800);
 
-            // Strict time-fitted constraint prompt
-            const prompt = `Listen to this audio/video carefully and analyze each scene segment by its exact timeline duration.
+            // Strict time-fitted constraint prompt ensuring natural storyteller narrative matching scene duration
+            const prompt = `Listen to this audio/video carefully and analyze each scene segment by its exact timeline duration from the very beginning (peach tree scene) to the end.
 Write a natural, engaging Burmese storyteller narrative (ဇာတ်ကြောင်းပြောပုံစံ) for each segment.
 
 CRITICAL TIMING & LENGTH RULES (Strictly Follow):
-1. STICT SYNC: The length of the Burmese text MUST match the scene's duration precisely. 
-   - If a scene is short (e.g., 2 to 4 seconds), write ONLY a very brief phrase or 4-10 words maximum so it fits perfectly without dragging.
-   - Do NOT write long sentences for short scenes. Keep it punchy, concise, and natural.
+1. STRICT SYNC: The length of the Burmese text MUST match the scene's duration precisely. 
+   - For short scenes (2-4 seconds), write ONLY a very short phrase (4 to 10 words maximum) so it fits perfectly without dragging.
+   - Do NOT write long paragraphs for short scenes. Keep it punchy, concise, and natural.
 2. Return ONLY a valid JSON array.
 3. Do NOT wrap the JSON inside markdown code blocks. Just output raw JSON text starting with [ and ending with ].
 4. Ensure all string values inside JSON are properly escaped.
@@ -350,12 +329,14 @@ Use this exact structure:
         list.innerHTML = '';
         transcriptData.forEach((item, index) => {
             const div = document.createElement('div');
-            div.className = "bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/80";
+            div.className = "bg-slate-900/80 p-3.5 rounded-xl border border-slate-700/80 space-y-2";
             div.innerHTML = `
-                <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center justify-between">
                     <button onclick="seekVideo(${item.seconds})" class="text-xs font-mono text-sky-400 hover:underline bg-sky-950/50 px-2 py-0.5 rounded">▶ ${item.displayTime}</button>
+                    <button onclick="playSceneAudio(${index})" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg flex items-center gap-1">🔊 ဒီဇာတ်ကွက် အသံထွက်ဖတ်မည်</button>
                 </div>
-                <textarea data-index="${index}" class="transcript-edit w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white leading-relaxed focus:outline-none resize-none" rows="2" oninput="updateTranscript(${index}, this.value)">${item.myanmar}</textarea>`;
+                <textarea data-index="${index}" class="transcript-edit w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white leading-relaxed focus:outline-none resize-none" rows="2" oninput="updateTranscript(${index}, this.value)">${item.myanmar}</textarea>
+                <audio id="audio_${index}" class="hidden"></audio>`;
             list.appendChild(div);
         });
     }
@@ -369,6 +350,18 @@ Use this exact structure:
     function seekVideo(seconds) {
         const video = document.getElementById('videoPreview');
         if (!video.classList.contains('hidden')) { video.currentTime = seconds; video.play(); }
+    }
+
+    function playSceneAudio(index) {
+        const item = transcriptData[index];
+        if (!item || !item.myanmar.trim()) return alert('ဖတ်ရန် စာသားမရှိပါ။');
+        
+        const audioElem = document.getElementById(`audio_${index}`);
+        const encodedText = encodeURIComponent(item.myanmar.trim());
+        audioElem.src = `[https://translate.google.com/translate_tts?ie=UTF-8&q=$](https://translate.google.com/translate_tts?ie=UTF-8&q=$){encodedText}&tl=my&client=tw-ob`;
+        audioElem.play().catch(e => {
+            alert('အသံထုတ်လွှင့်ရာတွင် အခက်အခဲရှိပါသည်။');
+        });
     }
 
     function copyTranscript() {
@@ -385,92 +378,6 @@ Use this exact structure:
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url; a.download = `story_narrative.${type}`; a.click();
-    }
-
-    // ========== Robust Chunked Google Free TTS Audio Generator with Gaps ==========
-    async function generateGoogleVoice() {
-        const lines = transcriptData.filter(t => t.myanmar && t.myanmar.trim().length > 0);
-        if (lines.length === 0) return alert('ဖတ်ရန် စာသားမရှိပါ။');
-
-        alert('မြန်မာအသံဖိုင်များကို အချိန်ကိုက် စုစည်းထုတ်လုပ်နေပါသည်၊ ခေတ္တစောင့်ဆိုင်းပါ...');
-
-        try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            let audioBuffers = [];
-
-            for (let item of lines) {
-                let text = item.myanmar.trim();
-                if (!text) continue;
-                
-                let encodedText = encodeURIComponent(text);
-                let ttsUrl = `[https://translate.google.com/translate_tts?ie=UTF-8&q=$](https://translate.google.com/translate_tts?ie=UTF-8&q=$){encodedText}&tl=my&client=tw-ob`;
-
-                try {
-                    let res = await fetch(ttsUrl);
-                    if (!res.ok) continue;
-                    let arrayBuf = await res.arrayBuffer();
-                    let decodedBuf = await audioCtx.decodeAudioData(arrayBuf);
-                    audioBuffers.push(decodedBuf);
-                } catch (e) {
-                    console.warn("Failed to fetch chunk:", text, e);
-                }
-            }
-
-            if (audioBuffers.length === 0) {
-                throw new Error("အသံဖိုင်များ ထုတ်ယူ၍မရပါ။ အင်တာနက်လိုင်း သို့မဟုတ် စာသားများကို စစ်ဆေးပါ။");
-            }
-
-            // Calculate total length including small pauses between chunks
-            let sampleRate = audioBuffers[0].sampleRate;
-            let pauseSamples = Math.floor(sampleRate * 0.2); // 0.2s pause between lines
-            let totalLength = audioBuffers.reduce((sum, buf) => sum + buf.length, 0) + (pauseSamples * (audioBuffers.length - 1));
-            
-            let outputNode = audioCtx.createBuffer(1, totalLength, sampleRate);
-            let channelData = outputNode.getChannelData(0);
-
-            let offset = 0;
-            for (let i = 0; i < audioBuffers.length; i++) {
-                let buf = audioBuffers[i];
-                channelData.set(buf.getChannelData(0), offset);
-                offset += buf.length + pauseSamples;
-            }
-
-            let wavBlob = audioBufferToWav(outputNode);
-            let audioUrl = URL.createObjectURL(wavBlob);
-
-            const player = document.getElementById('voicePlayer');
-            player.src = audioUrl;
-
-            const downloadBtn = document.getElementById('downloadVoiceBtn');
-            downloadBtn.href = audioUrl;
-            downloadBtn.download = 'story_narrative_audio.wav';
-
-            document.getElementById('voiceResult').classList.remove('hidden');
-            alert('အသံဖိုင် ထုတ်လုပ်ပြီးပါပြီ!');
-
-        } catch (err) {
-            console.error(err);
-            alert('အသံဖိုင် ထုတ်လုပ်ရာတွင် အမှားအယွင်းရှိပါသည်: ' + err.message);
-        }
-    }
-
-    function audioBufferToWav(buffer) {
-        const numOfChan = 1;
-        const length = buffer.length * numOfChan * 2 + 44;
-        const out = new ArrayBuffer(length);
-        const view = new DataView(out);
-        const sampleRate = buffer.sampleRate;
-        let pos = 0;
-        function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
-        function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
-        setUint32(0x46464952); setUint32(length - 8); setUint32(0x45564157); setUint32(0x20746d66); setUint32(16); setUint16(1); setUint16(numOfChan); setUint32(sampleRate); setUint32(sampleRate * 2 * numOfChan); setUint16(numOfChan * 2); setUint16(16); setUint32(0x61746164); setUint32(length - pos - 4);
-        const channelData = buffer.getChannelData(0);
-        for (let i = 0; i < channelData.length; i++) {
-            let sample = Math.max(-1, Math.min(1, channelData[i]));
-            sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-            view.setInt16(pos, sample, true); pos += 2;
-        }
-        return new Blob([out], { type: 'audio/wav' });
     }
 </script>
 </body>
