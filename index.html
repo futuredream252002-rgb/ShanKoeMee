@@ -290,16 +290,41 @@
                 }
             }, 800);
 
-            // Updated Prompt for Narrative / Scene storytelling style
+            // Strict JSON prompt to prevent syntax parsing errors
             const prompt = `Listen to this audio/video carefully. Analyze the scenes, actions, and overall progression. 
-Instead of doing a strict word-for-word translation, write a compelling, natural Burmese narrative description (ဇာတ်ကြောင်းပြောပုံစံ / Voiceover style) for each timeline segment, describing what is happening in the scene like a storyteller or narrator.
+Write a compelling, natural Burmese narrative description (ဇာတ်ကြောင်းပြောပုံစံ / Voiceover style) for each timeline segment, describing what is happening in the scene like a storyteller or narrator.
 
-Return ONLY a valid JSON array with no markdown formatting, using this exact structure:
-[{"start": "00:00:01,000", "end": "00:00:05,000", "displayTime": "00:01 - 00:05", "seconds": 1, "myanmar": "ဇာတ်ကွက်အခြေအနေကို ဇာတ်လမ်းပြောသလို ရှင်းပြထားသော စာသား"}]`;
+CRITICAL INSTRUCTIONS:
+- Return ONLY a valid JSON array.
+- Do NOT wrap the JSON inside markdown code blocks like \`\`\`json ... \`\`\`. Just output raw JSON text starting with [ and ending with ].
+- Ensure all string values inside the JSON are properly escaped, and avoid unescaped double quotes inside the Burmese text values to prevent JSON syntax errors.
+
+Use this exact structure:
+[
+  {
+    "start": "00:00:01,000",
+    "end": "00:00:05,000",
+    "displayTime": "00:01 - 00:05",
+    "seconds": 1,
+    "myanmar": "ဇာတ်ကွက်အခြေအနေကို ဇာတ်လမ်းပြောသလို ရှင်းပြထားသော စာသား"
+  }
+]`;
 
             let rawText = await fetchWithGeminiRotation(base64Audio, prompt);
-            rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-            transcriptData = JSON.parse(rawText);
+            
+            // Clean up text robustly to handle stray markdown tags if any
+            rawText = rawText.trim();
+            if (rawText.startsWith('```')) {
+                rawText = rawText.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/, '').trim();
+            }
+            
+            // Parse JSON safely
+            try {
+                transcriptData = JSON.parse(rawText);
+            } catch (jsonErr) {
+                console.error("Raw JSON text failed to parse:", rawText);
+                throw new Error("JSON Format အမှားအယွင်းရှိပါသည် (Gemini မှ မူမမှန်သော စာသားထုတ်ပေးမှုကြောင့်ပါ)။ ထပ်မံကြိုးစားကြည့်ပါ။");
+            }
 
             if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
             updateProgress(100);
@@ -361,26 +386,17 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
         a.href = url; a.download = `story_narrative.${type}`; a.click();
     }
 
-    // ========== Google Free TTS Integration (Reliable Burmese Speech) ==========
     async function generateGoogleVoice() {
         const lines = transcriptData.filter(t => t.myanmar && t.myanmar.trim().length > 0);
         if (lines.length === 0) return alert('ဖတ်ရန် စာသားမရှိပါ။');
 
         let fullText = lines.map(l => l.myanmar).join(' ');
-        
-        // Google Translate TTS endpoint supports Burmese ('my') and splits long text automatically or we chunk it if too long.
-        // For standard length, we can query Google Translate TTS directly.
-        // Note: Google limits single requests to ~200 characters, so we handle text splitting or use the standard audio source.
-        
         alert('အသံဖိုင် ထုတ်ယူနေပါသည်...');
         
         try {
-            // Encode text for URL
-            // To bypass short length limits safely, we take the combined text or chunk it.
             const encodedText = encodeURIComponent(fullText);
-            const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=my&client=tw-ob`;
+            const ttsUrl = `[https://translate.google.com/translate_tts?ie=UTF-8&q=$](https://translate.google.com/translate_tts?ie=UTF-8&q=$){encodedText}&tl=my&client=tw-ob`;
 
-            // Test loading audio blob
             const response = await fetch(ttsUrl);
             if (!response.ok) throw new Error('TTS Network response was not ok.');
             const blob = await response.blob();
@@ -396,9 +412,8 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
             document.getElementById('voiceResult').classList.remove('hidden');
         } catch (err) {
             console.error(err);
-            // Fallback method if direct fetch has CORS restriction in browser: use direct audio source element link
             const encodedText = encodeURIComponent(fullText);
-            const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=my&client=tw-ob`;
+            const ttsUrl = `[https://translate.google.com/translate_tts?ie=UTF-8&q=$](https://translate.google.com/translate_tts?ie=UTF-8&q=$){encodedText}&tl=my&client=tw-ob`;
             
             const player = document.getElementById('voicePlayer');
             player.src = ttsUrl;
