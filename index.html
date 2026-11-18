@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI ဗီဒီယို မြန်မာစာတန်းထိုး စတူဒီယို (VPS TTS)</title>
+    <title>AI ဗီဒီယို မြန်မာစာတန်းထိုး စတူဒီယို (Web Speech API)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans Myanmar', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .loader { border-top-color: #38bdf8; animation: spinner 1s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .circle-progress {
             --size: 100px; --stroke-width: 8px; --progress: 0;
             position: relative; width: var(--size); height: var(--size);
@@ -38,23 +40,18 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold text-white">AI ဗီဒီယို မြန်မာစာတန်းထိုး စတူဒီယို</h1>
-                <p class="text-xs text-slate-400">Gemini Auto Rotation + VPS Myanmar TTS</p>
+                <p class="text-xs text-slate-400">Gemini Auto + Web Speech API (Free & No Key)</p>
             </div>
         </div>
-        <button onclick="toggleApiModal()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-slate-200 border border-slate-600">⚙️ API Keys</button>
+        <button onclick="toggleApiModal()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-slate-200 border border-slate-600">⚙️ Gemini API Key</button>
     </div>
 
-    <!-- API Modal (Gemini only) -->
+    <!-- API Modal (Gemini Only) -->
     <div id="apiModal" class="hidden bg-slate-800 p-4 rounded-2xl border border-sky-500/50 space-y-4">
         <div>
             <label class="block text-sm font-medium text-sky-300 mb-1">Gemini API Keys (တစ်ကြောင်းလျှင် တစ်ခုစီ)</label>
             <textarea id="apiKeyInput" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-sky-500"></textarea>
             <p id="keyCount" class="text-xs text-slate-400 mt-1">သော့အရေအတွက်:</p>
-        </div>
-        <div class="border-t border-slate-700 pt-3">
-            <label class="block text-sm font-medium text-emerald-300 mb-1">VPS TTS API အများသိလိပ်စာ</label>
-            <input type="text" id="vpsApiInput" placeholder="ဥပမာ: https://your-vps-domain.com/api/tts" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-500">
-            <p class="text-xs text-slate-400 mt-1">သင့် VPS ပေါ်က Python backend ရဲ့ endpoint လိပ်စာ</p>
         </div>
         <div class="flex justify-end">
             <button onclick="saveApiKeys()" class="bg-sky-600 hover:bg-sky-500 px-4 py-2 rounded-xl text-sm font-medium">သိမ်းမည်</button>
@@ -95,40 +92,18 @@
             </div>
         </div>
 
-        <!-- Voice Selection Buttons -->
+        <!-- Voice Selection Buttons (Browser Speech API) -->
         <div id="voiceSelectArea" class="flex gap-3 justify-center py-2">
-            <button id="btnThiha" onclick="selectVoice('Thiha')" class="voice-btn bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-3 rounded-xl shadow-lg flex items-center gap-2">
-                👨 အသံ ၁ (အမျိုးသား)
+            <button id="btnPlaySpeech" onclick="playBrowserSpeech()" class="voice-btn bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-6 py-3 rounded-xl shadow-lg flex items-center gap-2">
+                🔊 အသံထွက်ဖတ်ပြမည် (Browser TTS)
             </button>
-            <button id="btnNilar" onclick="selectVoice('Nilar')" class="voice-btn bg-pink-600 hover:bg-pink-500 text-white font-medium px-6 py-3 rounded-xl shadow-lg flex items-center gap-2">
-                👩 အသံ ၂ (အမျိုးသမီး)
+            <button id="btnStopSpeech" onclick="stopBrowserSpeech()" class="hidden voice-btn bg-rose-600 hover:bg-rose-500 text-white font-medium px-6 py-3 rounded-xl shadow-lg flex items-center gap-2">
+                ⏹ ရပ်မည်
             </button>
         </div>
 
         <!-- Transcript List (Editable) -->
         <div id="transcriptList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2"></div>
-    </div>
-
-    <!-- Voice Progress Modal -->
-    <div id="voiceModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-        <div class="bg-slate-800 p-8 rounded-2xl border border-sky-500/50 text-center space-y-4 max-w-sm w-full mx-4">
-            <div id="voiceProgressCircle" class="circle-progress mx-auto" style="--progress: 0;">
-                <span id="voiceProgressPercent">0%</span>
-            </div>
-            <p id="voiceStatus" class="text-sm font-semibold text-sky-300">အသံဖိုင် ထုတ်နေပါသည်...</p>
-            <p id="voiceSubStatus" class="text-xs text-slate-400">VPS TTS ဖြင့် ဖတ်နေပါသည်</p>
-            <button id="cancelVoiceBtn" onclick="cancelVoiceOver()" class="text-xs bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg">ရပ်မည်</button>
-        </div>
-    </div>
-
-    <!-- Audio Player Result -->
-    <div id="voiceResult" class="hidden bg-slate-800/80 p-4 rounded-2xl border border-emerald-500/50 space-y-3">
-        <h3 class="text-sm font-bold text-emerald-300">🎧 ထွက်ရှိလာသော အသံဖိုင်</h3>
-        <audio id="voicePlayer" controls class="w-full"></audio>
-        <div class="flex gap-2">
-            <button onclick="downloadVoice()" class="text-xs bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded-lg">💾 အသံဖိုင် သိမ်းမည်</button>
-            <button onclick="document.getElementById('voiceResult').classList.add('hidden')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg">ပိတ်မည်</button>
-        </div>
     </div>
 </div>
 
@@ -136,10 +111,6 @@
     let selectedFile = null;
     let transcriptData = [];
     let progressInterval = null;
-    let voiceCancelled = false;
-    let voiceAudioBlob = null;
-    let voiceAudioUrl = null;
-    let selectedVoice = null;
 
     const defaultKeys = ["AQ.Ab8RN6IYjlyKKAj_MhsLSuHNHN18XlA4upxjpvwVG91lQcTnjQ"];
 
@@ -151,10 +122,6 @@
         }
         document.getElementById('apiKeyInput').value = savedKeys.join('\n');
         updateKeyCount(savedKeys.length);
-
-        // Load VPS API endpoint
-        const vpsApi = localStorage.getItem('vps_tts_api') || '';
-        document.getElementById('vpsApiInput').value = vpsApi;
     };
 
     function toggleApiModal() { document.getElementById('apiModal').classList.toggle('hidden'); }
@@ -164,10 +131,7 @@
         const keys = text.split('\n').map(k => k.trim()).filter(k => k.length > 0);
         localStorage.setItem('gemini_keys_list', JSON.stringify(keys));
         updateKeyCount(keys.length);
-
-        localStorage.setItem('vps_tts_api', document.getElementById('vpsApiInput').value.trim());
-
-        alert('API Keys များ သိမ်းဆည်းပြီးပါပြီ။');
+        alert('Gemini API Key များ သိမ်းဆည်းပြီးပါပြီ။');
         toggleApiModal();
     }
 
@@ -289,16 +253,6 @@
         }
     }
 
-    function updateVoiceProgress(percent) {
-        const circle = document.getElementById('voiceProgressCircle');
-        const label = document.getElementById('voiceProgressPercent');
-        if (circle && label) {
-            circle.style.setProperty('--progress', percent);
-            label.textContent = Math.floor(percent) + '%';
-            if (percent >= 100) circle.classList.add('done');
-        }
-    }
-
     // ========== Process Media ==========
     async function processMedia() {
         if (!selectedFile) return alert('ကျေးဇူးပြု၍ ဖိုင်တစ်ခုခု အရင်ရွေးပါ။');
@@ -308,12 +262,6 @@
         const statusDesc = document.getElementById('statusDesc');
         const resultSection = document.getElementById('resultSection');
         const generateBtn = document.getElementById('generateBtn');
-
-        document.getElementById('voiceSelectArea').classList.remove('hidden');
-        document.getElementById('btnThiha').classList.remove('selected');
-        document.getElementById('btnNilar').classList.remove('selected');
-        selectedVoice = null;
-        document.getElementById('voiceResult').classList.add('hidden');
 
         statusBox.classList.remove('hidden');
         resultSection.classList.add('hidden');
@@ -366,7 +314,7 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
         }
     }
 
-    // ========== Render Transcript ==========
+    // ========== Render Transcript (Editable) ==========
     function renderTranscript() {
         const list = document.getElementById('transcriptList');
         list.innerHTML = '';
@@ -383,7 +331,9 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
     }
 
     function updateTranscript(index, value) {
-        if (transcriptData[index]) transcriptData[index].myanmar = value;
+        if (transcriptData[index]) {
+            transcriptData[index].myanmar = value;
+        }
     }
 
     function seekVideo(seconds) {
@@ -408,91 +358,45 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
         a.href = url; a.download = `myanmar_transcript.${type}`; a.click();
     }
 
-    // ========== Voice Selection ==========
-    function selectVoice(voiceName) {
-        selectedVoice = voiceName;
-        document.getElementById('btnThiha').classList.add('selected');
-        document.getElementById('btnNilar').classList.add('selected');
-        generateVoiceOver(voiceName);
-    }
-
-    // ========== VPS TTS ==========
-    async function generateVoiceOver(voiceName) {
-        const vpsApi = localStorage.getItem('vps_tts_api');
-        if (!vpsApi) {
-            alert('ကျေးဇူးပြု၍ VPS TTS API လိပ်စာကို အရင်ထည့်ပါ။ (⚙️ API Keys ခလုတ်ကို နှိပ်ပါ)');
-            document.getElementById('voiceSelectArea').classList.remove('hidden');
-            document.getElementById('btnThiha').classList.remove('selected');
-            document.getElementById('btnNilar').classList.remove('selected');
-            return;
+    // ========== Window.speechSynthesis (Browser TTS) ==========
+    function playBrowserSpeech() {
+        if (!('speechSynthesis' in window)) {
+            return alert('သင့် Browser သည် Web Speech API ကို မပံ့ပိုးပါ။');
         }
 
         const lines = transcriptData.filter(t => t.myanmar && t.myanmar.trim().length > 0);
-        if (lines.length === 0) {
-            alert('ဘာသာပြန်စာသား မရှိပါ။');
-            document.getElementById('voiceSelectArea').classList.remove('hidden');
-            document.getElementById('btnThiha').classList.remove('selected');
-            document.getElementById('btnNilar').classList.remove('selected');
-            return;
-        }
+        if (lines.length === 0) return alert('ဖတ်ရန် စာသားမရှိပါ။');
 
-        voiceCancelled = false;
-        if (voiceAudioUrl) { URL.revokeObjectURL(voiceAudioUrl); voiceAudioUrl = null; }
+        window.speechSynthesis.cancel(); // Stop any ongoing speech
 
-        document.getElementById('voiceModal').classList.remove('hidden');
-        updateVoiceProgress(10);
-        document.getElementById('voiceStatus').textContent = 'အသံဖိုင် ထုတ်နေပါသည်...';
-        document.getElementById('voiceSubStatus').textContent = `${voiceName} အသံဖြင့် ဖတ်နေပါသည် (VPS)`;
+        let fullText = lines.map(l => l.myanmar).join('. ');
+        const utterance = new SpeechSynthesisUtterance(fullText);
+        utterance.lang = 'my-MM'; // Burmese language
+        utterance.rate = 1.0; // Speed
 
-        const fullText = lines.map(l => l.myanmar).join('\n');
+        document.getElementById('btnPlaySpeech').classList.add('hidden');
+        document.getElementById('btnStopSpeech').classList.remove('hidden');
 
-        try {
-            const response = await fetch(vpsApi, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: fullText })
-            });
+        utterance.onend = () => {
+            document.getElementById('btnPlaySpeech').classList.remove('hidden');
+            document.getElementById('btnStopSpeech').classList.add('hidden');
+        };
 
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
-                throw new Error(err.error || `HTTP ${response.status}`);
-            }
+        utterance.onerror = (e) => {
+            console.error(e);
+            document.getElementById('btnPlaySpeech').classList.remove('hidden');
+            document.getElementById('btnStopSpeech').classList.add('hidden');
+        };
 
-            updateVoiceProgress(90);
-            const audioBlob = await response.blob();
-            voiceAudioBlob = audioBlob;
-            voiceAudioUrl = URL.createObjectURL(audioBlob);
-            updateVoiceProgress(100);
-
-            document.getElementById('voicePlayer').src = voiceAudioUrl;
-            document.getElementById('voiceResult').classList.remove('hidden');
-            document.getElementById('voiceModal').classList.add('hidden');
-
-        } catch (err) {
-            console.error(err);
-            alert('အသံဖိုင် ထုတ်မရပါ: ' + err.message);
-            document.getElementById('voiceModal').classList.add('hidden');
-            document.getElementById('voiceSelectArea').classList.remove('hidden');
-            document.getElementById('btnThiha').classList.remove('selected');
-            document.getElementById('btnNilar').classList.remove('selected');
-        }
+        window.speechSynthesis.speak(utterance);
     }
 
-    function cancelVoiceOver() {
-        voiceCancelled = true;
-        document.getElementById('voiceModal').classList.add('hidden');
-        document.getElementById('voiceSelectArea').classList.remove('hidden');
-        document.getElementById('btnThiha').classList.remove('selected');
-        document.getElementById('btnNilar').classList.remove('selected');
-        selectedVoice = null;
-    }
-
-    function downloadVoice() {
-        if (!voiceAudioBlob) return alert('အသံဖိုင် မရှိသေးပါ။');
-        const a = document.createElement('a');
-        a.href = voiceAudioUrl;
-        a.download = `${selectedVoice || 'voice'}_myanmar.wav`;
-        a.click();
+    function stopBrowserSpeech() {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+        document.getElementById('btnPlaySpeech').classList.remove('hidden');
+        document.getElementById('btnStopSpeech').classList.add('hidden');
     }
 </script>
 </body>
