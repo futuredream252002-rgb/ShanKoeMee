@@ -40,7 +40,7 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold text-white">AI ဗီဒီယို ဇာတ်ကြောင်းပြော (Narrative) စတူဒီယို</h1>
-                <p class="text-xs text-slate-400">Gemini Timed Narrative + Google Free TTS</p>
+                <p class="text-xs text-slate-400">Gemini Perfect Sync Narrative + Google Free TTS</p>
             </div>
         </div>
         <button onclick="toggleApiModal()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-slate-200 border border-slate-600">⚙️ Gemini API Key</button>
@@ -84,7 +84,7 @@
     <!-- Result -->
     <div id="resultSection" class="hidden bg-slate-800/80 p-6 rounded-2xl border border-slate-700 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-4">
-            <h2 class="text-base font-bold text-white">🎬 ချိန်ညှိထားသော ဇာတ်ကြောင်းပြော စာသားများ (Edit ပြင်နိုင်သည်)</h2>
+            <h2 class="text-base font-bold text-white">🎬 အချိန်ကိုက် ချိန်ညှိထားသော ဇာတ်ကြောင်း စာသားများ</h2>
             <div class="flex flex-wrap gap-2">
                 <button onclick="copyTranscript()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg">📋 ကူးယူမည်</button>
                 <button onclick="downloadFile('txt')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg">💾 TXT</button>
@@ -108,7 +108,7 @@
         <h3 class="text-sm font-bold text-emerald-300">🎧 ထွက်ရှိလာသော မြန်မာအသံဖိုင်</h3>
         <audio id="voicePlayer" controls class="w-full"></audio>
         <div class="flex gap-2">
-            <a id="downloadVoiceBtn" class="text-xs bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded-lg text-white font-medium inline-block text-center cursor-pointer">💾 အသံဖိုင် သိမ်းမည် (MP3)</a>
+            <a id="downloadVoiceBtn" class="text-xs bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded-lg text-white font-medium inline-block text-center cursor-pointer">💾 အသံဖိုင် သိမ်းမည် (WAV)</a>
             <button onclick="document.getElementById('voiceResult').classList.add('hidden')" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-white">ပိတ်မည်</button>
         </div>
     </div>
@@ -218,7 +218,7 @@
     }
 
     async function fetchWithGeminiRotation(base64Audio, promptText) {
-        let keys = JSON.parse(localStorage.getItem('gemini_keys_list'))  || defaultKeys;
+        let keys = JSON.parse(localStorage.getItem('gemini_keys_list')) || defaultKeys;
         if (keys.length === 0) throw new Error("Gemini API Key တစ်ခုမှ မရှိပါ။");
         let lastError = null;
         for (let i = 0; i < keys.length; i++) {
@@ -279,7 +279,7 @@
             updateProgress(15);
 
             statusTitle.textContent = "၂။ Gemini AI ဖြင့် အချိန်ကိုက် ဇာတ်ကြောင်းဖန်တီးနေပါသည်...";
-            statusDesc.textContent = "Scene တစ်ခုချင်းစီ၏ ကြာချိန်နှင့်အညီ စာသားအတိုအရှည် ချိန်ညှိနေပါသည်...";
+            statusDesc.textContent = "Scene တစ်ခုချင်းစီ၏ ကြာချိန်နှင့်အညီ စာသားအတိုအရှည် တိကျစွာ ချိန်ညှိနေပါသည်...";
 
             let progress = 15;
             progressInterval = setInterval(() => {
@@ -290,15 +290,17 @@
                 }
             }, 800);
 
-            // Strict time-fitted narrative prompt
+            // Strict time-fitted constraint prompt
             const prompt = `Listen to this audio/video carefully and analyze each scene segment by its exact timeline duration.
 Write a natural, engaging Burmese storyteller narrative (ဇာတ်ကြောင်းပြောပုံစံ) for each segment.
 
-CRITICAL TIMING & LENGTH CONSTRAINTS:
-- Keep the length of the Burmese text strictly proportional to the scene's duration (e.g. short scenes of 2-3 seconds must only have a very short phrase so it can be spoken comfortably within that time frame without dragging past the video). Do not make long paragraphs for short scenes.
-- Return ONLY a valid JSON array.
-- Do NOT wrap the JSON inside markdown code blocks. Just output raw JSON text starting with [ and ending with ].
-- Ensure all string values inside JSON are properly escaped.
+CRITICAL TIMING & LENGTH RULES (Strictly Follow):
+1. STICT SYNC: The length of the Burmese text MUST match the scene's duration precisely. 
+   - If a scene is short (e.g., 2 to 4 seconds), write ONLY a very brief phrase or 4-10 words maximum so it fits perfectly without dragging.
+   - Do NOT write long sentences for short scenes. Keep it punchy, concise, and natural.
+2. Return ONLY a valid JSON array.
+3. Do NOT wrap the JSON inside markdown code blocks. Just output raw JSON text starting with [ and ending with ].
+4. Ensure all string values inside JSON are properly escaped.
 
 Use this exact structure:
 [
@@ -385,18 +387,17 @@ Use this exact structure:
         a.href = url; a.download = `story_narrative.${type}`; a.click();
     }
 
-    // ========== Robust Chunked Google Free TTS Audio Generator ==========
+    // ========== Robust Chunked Google Free TTS Audio Generator with Gaps ==========
     async function generateGoogleVoice() {
         const lines = transcriptData.filter(t => t.myanmar && t.myanmar.trim().length > 0);
         if (lines.length === 0) return alert('ဖတ်ရန် စာသားမရှိပါ။');
 
-        alert('မြန်မာအသံဖိုင်များကို စုစည်းထုတ်ယူနေပါသည်၊ ခေတ္တစောင့်ဆိုင်းပါ...');
+        alert('မြန်မာအသံဖိုင်များကို အချိန်ကိုက် စုစည်းထုတ်လုပ်နေပါသည်၊ ခေတ္တစောင့်ဆိုင်းပါ...');
 
         try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             let audioBuffers = [];
 
-            // Fetch each line sequentially to avoid Google Translate length limits & ensure smooth joining
             for (let item of lines) {
                 let text = item.myanmar.trim();
                 if (!text) continue;
@@ -419,19 +420,21 @@ Use this exact structure:
                 throw new Error("အသံဖိုင်များ ထုတ်ယူ၍မရပါ။ အင်တာနက်လိုင်း သို့မဟုတ် စာသားများကို စစ်ဆေးပါ။");
             }
 
-            // Calculate total length
-            let totalLength = audioBuffers.reduce((sum, buf) => sum + buf.length, 0);
+            // Calculate total length including small pauses between chunks
             let sampleRate = audioBuffers[0].sampleRate;
+            let pauseSamples = Math.floor(sampleRate * 0.2); // 0.2s pause between lines
+            let totalLength = audioBuffers.reduce((sum, buf) => sum + buf.length, 0) + (pauseSamples * (audioBuffers.length - 1));
+            
             let outputNode = audioCtx.createBuffer(1, totalLength, sampleRate);
             let channelData = outputNode.getChannelData(0);
 
             let offset = 0;
-            for (let buf of audioBuffers) {
+            for (let i = 0; i < audioBuffers.length; i++) {
+                let buf = audioBuffers[i];
                 channelData.set(buf.getChannelData(0), offset);
-                offset += buf.length;
+                offset += buf.length + pauseSamples;
             }
 
-            // Convert combined AudioBuffer to WAV Blob
             let wavBlob = audioBufferToWav(outputNode);
             let audioUrl = URL.createObjectURL(wavBlob);
 
