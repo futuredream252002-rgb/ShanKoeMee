@@ -149,10 +149,18 @@
             </div>
         </div>
 
-        <!-- Video ထုတ်မယ် Button (Navigates to Page 3 Editor) -->
-        <button onclick="goToVideoEditPage()" class="w-full gold-btn font-bold py-3.5 rounded-2xl text-sm transition shadow-lg flex items-center justify-center gap-2">
-            <span>🎬 Video Edit လုပ်မယ် (CapCut ပုံစံ)</span>
-        </button>
+        <!-- Batch Audio Upload + Video Edit Buttons -->
+        <div class="grid grid-cols-2 gap-3">
+            <button onclick="triggerBatchAudioUpload()" class="outline-btn font-bold py-3.5 rounded-2xl text-sm transition flex items-center justify-center gap-2">
+                <span>📂 အသံ အများကြီး တင်မယ်</span>
+            </button>
+            <button onclick="goToVideoEditPage()" class="gold-btn font-bold py-3.5 rounded-2xl text-sm transition shadow-lg flex items-center justify-center gap-2">
+                <span>🎬 Video Edit</span>
+            </button>
+        </div>
+        <p class="text-[11px] text-slate-400 text-center -mt-1">
+            အသံဖိုင်တွေကို တစ်ခါတည်း အများကြီး ရွေးပြီး ထည့်နိုင်ပါတယ်
+        </p>
 
         <!-- Pagination Bar -->
         <div class="grid grid-cols-3 items-center gap-2">
@@ -234,6 +242,22 @@
 
             <video id="finalVideoPlayer" controls playsinline class="w-full rounded-2xl bg-black border border-purple-500/30 max-h-72"></video>
 
+            <!-- Current Scene Indicator -->
+            <div id="currentSceneIndicator" class="bg-[#150a24] rounded-2xl p-3 border border-amber-500/30 text-center">
+                <p class="text-[11px] text-slate-400 mb-1">လက်ရှိ ဖွင့်နေသော Scene</p>
+                <p id="currentSceneText" class="text-sm font-semibold text-amber-300">—</p>
+            </div>
+
+            <!-- Scene list for sync checking + speed adjust -->
+            <div class="space-y-2">
+                <p class="text-xs text-slate-400 px-1">Scene အလိုက် အသံ Speed ချိန်ရန် (မကိုက်ရင် ပြင်ပြီး Re-render လုပ်ပါ)</p>
+                <div id="finalSceneList" class="space-y-2.5 max-h-72 overflow-y-auto pr-1"></div>
+            </div>
+
+            <button onclick="startVideoRender()" class="w-full outline-btn font-bold py-3 rounded-2xl text-sm">
+                🔄 Speed အသစ်နဲ့ ပြန် Render လုပ်မည်
+            </button>
+
             <a id="downloadFinalVideoBtn" download="dubbed_myanmar_video.webm" class="block w-full text-center gold-btn font-bold py-3.5 rounded-2xl text-sm shadow-lg">
                 💾 Video ဖိုင် သိမ်းမည် (Download)
             </a>
@@ -249,8 +273,8 @@
 
 </div>
 
-<!-- Hidden Single Audio File Input for Scene Upload -->
-<input type="file" id="sceneAudioInput" accept="audio/*" class="hidden" onchange="handleSceneAudioUpload(event)">
+<!-- Hidden Audio File Input (supports multiple) -->
+<input type="file" id="sceneAudioInput" accept="audio/*" multiple class="hidden" onchange="handleSceneAudioUpload(event)">
 
 <!-- Auto Copy Toast -->
 <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-amber-400 text-[#1a0f26] font-bold text-xs px-5 py-2.5 rounded-full shadow-2xl z-50 toast-anim">
@@ -462,12 +486,23 @@
                 }
             }, 700);
 
-            // Updated Prompt style matching the video narration style
-            const prompt = `Listen to this video/audio carefully and write a continuous story narration script in natural, colloquial, everyday spoken Burmese (စကားပြောဟန်) suitable for voiceover dubbing—expressive and engaging (for example matching the style: "ကျေးပွန်ရှိုးပွဲစဉ်မြင့်ပေါ်မှာ ငါးနှစ်အရွယ် ရာရာလေးက...", "နိုင်လူကြီးကောင်းမင်နဲ့ လင်းရှောင်မန်တို့က...").
-Do NOT use formal literary Burmese (စာဟန် like သည်/၏/၌). End sentences naturally with Burmese punctuation "။" where appropriate.
+            const prompt = `You are creating a Myanmar voiceover script for video dubbing.
 
-Return ONLY a valid JSON array with no markdown formatting, using this exact structure:
-[{"start": "00:00:00,000", "end": "00:00:06,000", "displayTime": "00:00–00:06", "seconds": 0, "myanmar": "ကျေးပွန်ရှိုးပွဲစဉ်မြင့်ပေါ်မှာ ငါးနှစ်အရွယ် ရာရာလေးက ပန်းပွင့်အင်္ကျီလေးဝတ်ဆင်ပြီး ရပ်တောင်နဲ့ ပဝါနီကိုင်ကာ ပျော်ရွှင်စွာ ချင်းဆိုကနေပါတယ်။"}]`;
+Carefully watch/listen to the video/audio. Divide the entire content into short natural story segments with accurate timestamps.
+
+For each segment, write a natural, colloquial spoken Burmese (စကားပြောဟန်) NARRATIVE description of what is happening — like telling a story to a friend. Describe the actions, emotions, and events clearly.
+
+IMPORTANT STYLE:
+- Write in story-telling style, NOT just dialogue.
+- Example of good style:
+  "ရာရာလေးက သစ်သီးခိုးစားနေချိန် သူ့ရဲ့အဖွားက လှမ်းလိုက်ပါတယ်။ ရာရာလေးက အဖွားအသံကြားတော့ ထွက်ပြေးပါတယ်။ အဖွားက ရာရာလေး ရပ်လိုက်စမ်းလို့ အနောက်ကနေ လှမ်းလိုက်ပါတယ်။"
+- Use everyday spoken Burmese. Short, clear, and natural.
+- Do NOT use formal literary Burmese (သည် / ၏ / ၌).
+- End sentences with "။"
+
+Return ONLY a valid JSON array (no markdown, no extra text) with this exact structure:
+[{"start": "00:00:00,000", "end": "00:00:08,000", "displayTime": "00:00–00:08", "seconds": 0, "myanmar": "ရာရာလေးက သစ်သီးခိုးစားနေပါတယ်။"}]
+`;
 
             let rawText = await fetchWithGeminiRotation(base64Audio, prompt);
             rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -634,20 +669,88 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
         fileInput.click();
     }
 
+    // Batch upload – only affects the current page (max 5 scenes)
+    function triggerBatchAudioUpload() {
+        activeAudioUploadIndex = -1; // special value: batch mode for current page only
+        const fileInput = document.getElementById('sceneAudioInput');
+        fileInput.value = '';
+        fileInput.click();
+    }
+
     function handleSceneAudioUpload(event) {
-        const file = event.target.files[0];
-        if (!file || activeAudioUploadIndex === null) return;
+        const files = Array.from(event.target.files || []);
+        if (files.length === 0) return;
 
-        const item = transcriptData[activeAudioUploadIndex];
-        if (item.audioUrl) URL.revokeObjectURL(item.audioUrl);
+        // Calculate current page range (only these 5 scenes can be affected)
+        const startIdx = (currentPage - 1) * itemsPerPage;
+        const endIdx = Math.min(startIdx + itemsPerPage, transcriptData.length);
+        const pageLength = endIdx - startIdx;
 
-        item.audioFile = file;
-        item.audioUrl = URL.createObjectURL(file);
-        if (typeof item.speed !== 'number') item.speed = 1.0;
+        let assigned = 0;
 
+        if (activeAudioUploadIndex === -1) {
+            // ===== BATCH MODE: only fill / replace the current page =====
+            // Assign files starting from the first scene of the current page
+            // Max files used = number of scenes on this page (usually 5)
+            const maxAssign = Math.min(files.length, pageLength);
+
+            for (let f = 0; f < maxAssign; f++) {
+                const targetIdx = startIdx + f;
+                const item = transcriptData[targetIdx];
+
+                if (item.audioUrl) URL.revokeObjectURL(item.audioUrl);
+
+                item.audioFile = files[f];
+                item.audioUrl = URL.createObjectURL(files[f]);
+                if (typeof item.speed !== 'number') item.speed = 1.0;
+                // Store duration for sequential highlighting
+                const tempAudio = new Audio(item.audioUrl);
+                tempAudio.addEventListener('loadedmetadata', () => {
+                    item._audioDuration = tempAudio.duration || 4;
+                });
+                assigned++;
+            }
+
+            showToast(`🎵 ဒီစာမျက်နှာမှာ အသံဖိုင် ${assigned} ခု ထည့်ပြီးပါပြီ`);
+        } else {
+            // ===== SINGLE SCENE MODE (or multi starting from clicked scene) =====
+            // Still stay inside the current page only
+            let startIndex = activeAudioUploadIndex;
+
+            // Safety: make sure the clicked index is on the current page
+            if (startIndex < startIdx || startIndex >= endIdx) {
+                startIndex = startIdx;
+            }
+
+            for (let f = 0; f < files.length; f++) {
+                const targetIdx = startIndex + f;
+                // Do not go beyond the current page
+                if (targetIdx >= endIdx) break;
+
+                const item = transcriptData[targetIdx];
+                if (item.audioUrl) URL.revokeObjectURL(item.audioUrl);
+
+                item.audioFile = files[f];
+                item.audioUrl = URL.createObjectURL(files[f]);
+                if (typeof item.speed !== 'number') item.speed = 1.0;
+                // Store duration for sequential highlighting
+                const tempAudio = new Audio(item.audioUrl);
+                tempAudio.addEventListener('loadedmetadata', () => {
+                    item._audioDuration = tempAudio.duration || 4;
+                });
+                assigned++;
+            }
+
+            if (assigned === 1) {
+                showToast(`🎵 အပိုင်း (${startIndex + 1}) အသံဖိုင်ထည့်ပြီးပါပြီ`);
+            } else {
+                showToast(`🎵 ဒီစာမျက်နှာမှာ အသံဖိုင် ${assigned} ခု ထည့်ပြီးပါပြီ`);
+            }
+        }
+
+        // Stay on the same page – just re-render
         renderTranscript();
         updateAudioStats();
-        showToast(`🎵 အပိုင်း (${activeAudioUploadIndex + 1}) အသံဖိုင်ထည့်ပြီးပါပြီ`);
     }
 
     function playSceneAudio(index) {
@@ -676,6 +779,7 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
     // ==================== TIMESTAMP HELPERS ====================
     function parseTimestampToSeconds(ts) {
         if (!ts) return 0;
+        // Support "00:00:12,000" or "00:00:12.000" or "00:12"
         const cleaned = String(ts).replace(',', '.').trim();
         const parts = cleaned.split(':');
         if (parts.length === 3) {
@@ -691,13 +795,14 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
         let startSec = (typeof item.seconds === 'number') ? item.seconds : parseTimestampToSeconds(item.start);
         let endSec = parseTimestampToSeconds(item.end);
         if (!endSec || endSec <= startSec) {
+            // Fallback: try to parse displayTime like "00:00–00:12"
             if (item.displayTime && item.displayTime.includes('–')) {
                 const parts = item.displayTime.split('–');
                 endSec = parseTimestampToSeconds(parts[1]);
             }
         }
         if (!endSec || endSec <= startSec) {
-            endSec = startSec + 3;
+            endSec = startSec + 3; // safe default 3 seconds
         }
         return {
             start: Math.max(0, startSec),
@@ -735,11 +840,13 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
             return alert('မူရင်း Video ဖိုင် မရှိတော့ပါ။');
         }
 
+        // Show editor first
         switchPage(3);
         document.getElementById('editorSection').classList.remove('hidden');
         document.getElementById('renderStatusCard').classList.add('hidden');
         document.getElementById('finalVideoCard').classList.add('hidden');
 
+        // Setup video preview
         const editorVideo = document.getElementById('editorVideoPreview');
         editorVideo.src = selectedVideoUrl;
         editorVideo.muted = true;
@@ -772,6 +879,7 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
             const card = document.createElement('div');
             card.className = `dark-card p-4 rounded-3xl space-y-3 transition-all cursor-pointer ${isSelected ? 'scene-card-selected' : ''}`;
             card.onclick = (e) => {
+                // Don't trigger when interacting with controls
                 if (e.target.closest('button') || e.target.closest('input') || e.target.closest('audio')) return;
                 selectEditorScene(idx);
             };
@@ -822,6 +930,7 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
     function selectEditorScene(index) {
         selectedEditorIndex = index;
         renderEditorScenes();
+        // Scroll the card into view if needed
         showToast(`Scene ${index + 1} ကို ရွေးလိုက်ပါပြီ`);
     }
 
@@ -857,6 +966,7 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
             return alert('မူရင်း Video ဖိုင် မရှိတော့ပါ။');
         }
 
+        // Hide editor, show progress
         document.getElementById('editorSection').classList.add('hidden');
         document.getElementById('renderStatusCard').classList.remove('hidden');
         document.getElementById('finalVideoCard').classList.add('hidden');
@@ -875,6 +985,9 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const destNode = audioCtx.createMediaStreamDestination();
 
+            // ========== STRICT SEQUENTIAL AUDIO (no overlap) ==========
+            // Play each audio fully one after another.
+            // Next audio starts only after the previous one has completely finished.
             const scheduledClips = [];
             for (let i = 0; i < transcriptData.length; i++) {
                 const item = transcriptData[i];
@@ -882,22 +995,22 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
 
                 const arrBuf = await item.audioFile.arrayBuffer();
                 const audioBuf = await audioCtx.decodeAudioData(arrBuf);
-                const timing = getSceneTiming(item);
                 const rate = (typeof item.speed === 'number' && item.speed > 0) ? item.speed : 1.0;
 
                 scheduledClips.push({
                     buffer: audioBuf,
-                    startTime: timing.start,
-                    sceneDuration: timing.duration,
-                    rate: rate
+                    rate: rate,
+                    originalIndex: i
                 });
             }
 
-            scheduledClips.sort((a, b) => a.startTime - b.startTime);
+            // Keep original order (scene order)
+            // Do NOT sort by timestamp – we force sequential playback
 
             updateCircleProgress('renderCircle', 'renderPercent', 20);
             document.getElementById('renderTitle').textContent = "Video နှင့် အသံ ပေါင်းစပ်ထုတ်လုပ်နေပါသည်...";
 
+            // Create hidden video element (MUTED to strip original audio)
             const sourceVideo = document.createElement('video');
             sourceVideo.src = selectedVideoUrl;
             sourceVideo.muted = true;
@@ -944,12 +1057,14 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
                 };
             });
 
+            // Start playback & schedule new audio tracks SEQUENTIALLY
             await audioCtx.resume();
             sourceVideo.currentTime = 0;
             recorder.start(100);
             await sourceVideo.play();
 
             const baseAudioTime = audioCtx.currentTime;
+            let nextStartTime = 0; // cumulative wall-clock time
 
             for (const clip of scheduledClips) {
                 const srcNode = audioCtx.createBufferSource();
@@ -957,16 +1072,14 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
                 srcNode.playbackRate.value = clip.rate;
                 srcNode.connect(destNode);
 
-                const bufferDurationToPlay = Math.min(
-                    clip.buffer.duration,
-                    clip.sceneDuration * clip.rate
-                );
+                // Play the FULL audio buffer
+                // Wall-clock duration = buffer.duration / rate
+                const wallDuration = clip.buffer.duration / clip.rate;
 
-                srcNode.start(
-                    baseAudioTime + clip.startTime,
-                    0,
-                    bufferDurationToPlay
-                );
+                srcNode.start(baseAudioTime + nextStartTime, 0);
+
+                // Next audio starts only after this one finishes
+                nextStartTime += wallDuration;
             }
 
             const totalDuration = sourceVideo.duration || 1;
@@ -984,6 +1097,7 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
             }
             requestAnimationFrame(drawFrame);
 
+            // Safety timeout: force stop a bit after video ends
             const safetyTimer = setTimeout(() => {
                 if (isRendering && recorder.state !== 'inactive') {
                     try { recorder.stop(); } catch(e) {}
@@ -1004,6 +1118,12 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
             downloadBtn.href = finalUrl;
             downloadBtn.download = 'dubbed_myanmar_video.webm';
 
+            // Setup scene highlighting while playing
+            setupFinalVideoSync(finalPlayer);
+
+            // Show scene list under the video for speed checking/adjusting
+            renderFinalSceneList();
+
             document.getElementById('renderStatusCard').classList.add('hidden');
             document.getElementById('finalVideoCard').classList.remove('hidden');
             isRendering = false;
@@ -1013,9 +1133,127 @@ Return ONLY a valid JSON array with no markdown formatting, using this exact str
             console.error(err);
             isRendering = false;
             alert('Video ထုတ်လုပ်ရာတွင် အမှားဖြစ်ပေါ်ပါသည်: ' + err.message);
+            // Return to editor so user can try again
             document.getElementById('renderStatusCard').classList.add('hidden');
             document.getElementById('editorSection').classList.remove('hidden');
         }
+    }
+
+    // ==================== FINAL VIDEO SYNC + SCENE LIST ====================
+    let finalSyncHandler = null;
+    let sequentialTimings = []; // [{idx, start, end}, ...] based on sequential playback
+
+    function buildSequentialTimings() {
+        sequentialTimings = [];
+        let cursor = 0;
+        transcriptData.forEach((item, idx) => {
+            if (!item.audioFile) return;
+            // We don't know exact duration here without decoding, so we approximate
+            // using a stored duration if available, otherwise skip precise highlight
+            // For highlight we will use a simple cumulative estimate later
+            sequentialTimings.push({ idx, start: cursor, end: cursor + 3 }); // temporary
+            cursor += 3;
+        });
+    }
+
+    function setupFinalVideoSync(videoEl) {
+        if (finalSyncHandler) {
+            videoEl.removeEventListener('timeupdate', finalSyncHandler);
+        }
+
+        // Build better sequential timings using audio durations if possible
+        // (We store approximate durations during render, but for simplicity use order)
+        finalSyncHandler = () => {
+            const t = videoEl.currentTime;
+            let currentIdx = -1;
+            let currentText = '—';
+
+            // Find which sequential clip should be playing
+            // Since we play sequentially from 0, we use the order of scenes that have audio
+            let cumulative = 0;
+            const scenesWithAudio = transcriptData
+                .map((item, idx) => ({ item, idx }))
+                .filter(x => x.item.audioFile);
+
+            for (const { item, idx } of scenesWithAudio) {
+                // Approximate duration: we don't have exact buffer duration here easily,
+                // so we use a reasonable default or previously known value.
+                // Better: store duration when uploading.
+                const approxDur = item._audioDuration || 4; // fallback
+                const rate = item.speed || 1;
+                const wallDur = approxDur / rate;
+
+                if (t >= cumulative && t < cumulative + wallDur) {
+                    currentIdx = idx;
+                    currentText = `Scene ${idx + 1} — ${item.myanmar.substring(0, 42)}${item.myanmar.length > 42 ? '…' : ''}`;
+                    break;
+                }
+                cumulative += wallDur;
+            }
+
+            const indicator = document.getElementById('currentSceneText');
+            if (indicator) indicator.textContent = currentText;
+
+            document.querySelectorAll('#finalSceneList .final-scene-card').forEach(card => {
+                const idx = parseInt(card.dataset.idx);
+                if (idx === currentIdx) {
+                    card.classList.add('scene-card-selected');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    card.classList.remove('scene-card-selected');
+                }
+            });
+        };
+
+        videoEl.addEventListener('timeupdate', finalSyncHandler);
+    }
+
+    function renderFinalSceneList() {
+        const list = document.getElementById('finalSceneList');
+        if (!list) return;
+        list.innerHTML = '';
+
+        transcriptData.forEach((item, idx) => {
+            if (!item.audioFile) return;
+
+            const timing = getSceneTiming(item);
+            const speed = (typeof item.speed === 'number') ? item.speed : 1.0;
+
+            const card = document.createElement('div');
+            card.className = 'final-scene-card dark-card p-3 rounded-2xl space-y-2 transition-all';
+            card.dataset.idx = idx;
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="text-xs font-bold text-amber-400">
+                        Scene ${idx + 1} • ${item.displayTime || (timing.start.toFixed(1) + 's')}
+                    </div>
+                    <span class="text-[11px] text-slate-400" id="finalSpeedLabel-${idx}">${speed.toFixed(2)}x</span>
+                </div>
+                <p class="text-sm text-white leading-relaxed">${item.myanmar}</p>
+                <div class="flex items-center gap-3">
+                    <input type="range" min="0.5" max="2" step="0.05" value="${speed}"
+                           class="flex-1"
+                           oninput="updateFinalSceneSpeed(${idx}, this.value)">
+                    <button onclick="previewSceneAudio(${idx})" class="outline-btn px-3 py-1.5 rounded-xl text-[11px]">
+                        ▶
+                    </button>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    function updateFinalSceneSpeed(index, value) {
+        const speed = parseFloat(value);
+        if (transcriptData[index]) {
+            transcriptData[index].speed = speed;
+        }
+        const label = document.getElementById(`finalSpeedLabel-${index}`);
+        if (label) label.textContent = speed.toFixed(2) + 'x';
+        // Also update the editor side label if exists
+        const editorLabel = document.getElementById(`speedLabel-${index}`);
+        if (editorLabel) editorLabel.textContent = speed.toFixed(2) + 'x';
     }
 </script>
 </body>
