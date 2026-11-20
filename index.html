@@ -296,7 +296,66 @@
         const savedKeys = JSON.parse(localStorage.getItem('gemini_keys_list')) || [];
         document.getElementById('apiKeyInput').value = savedKeys.join('\n');
         updateKeyCount(savedKeys.length);
+
+        // Try to restore previous project
+        tryRestoreProject();
     };
+
+    // ==================== LOCAL PROJECT SAVE / RESTORE ====================
+    function saveProjectToLocal() {
+        try {
+            const project = {
+                savedAt: Date.now(),
+                transcript: transcriptData.map(item => ({
+                    start: item.start,
+                    end: item.end,
+                    displayTime: item.displayTime,
+                    seconds: item.seconds,
+                    myanmar: item.myanmar,
+                    speed: item.speed || 1.0,
+                    hasAudio: !!item.audioFile
+                })),
+                currentPage: currentPage
+            };
+            localStorage.setItem('ai_video_studio_project', JSON.stringify(project));
+        } catch (e) {
+            console.warn('Project save failed', e);
+        }
+    }
+
+    function tryRestoreProject() {
+        try {
+            const raw = localStorage.getItem('ai_video_studio_project');
+            if (!raw) return;
+            const project = JSON.parse(raw);
+            if (!project || !Array.isArray(project.transcript) || project.transcript.length === 0) return;
+
+            // Only restore text/script data (audio files cannot be restored from localStorage)
+            transcriptData = project.transcript.map(item => ({
+                ...item,
+                audioFile: null,
+                audioUrl: null,
+                isEditing: false,
+                speed: item.speed || 1.0
+            }));
+            currentPage = project.currentPage || 1;
+
+            // Show a small notice on page 1
+            const notice = document.createElement('div');
+            notice.className = 'dark-card p-3 rounded-2xl text-xs text-amber-300 border border-amber-500/40';
+            notice.innerHTML = `📂 ယခင် Project တစ်ခု တွေ့ရှိပါသည် (${transcriptData.length} scene)။ Script စာမျက်နှာသို့ သွားပြီး အသံပြန်ထည့်ပါ။
+                <button onclick="this.parentElement.remove(); switchPage(2); renderTranscript(); updateAudioStats();" class="mt-2 w-full gold-btn py-2 rounded-xl text-xs font-bold">Script သို့ သွားမည်</button>`;
+            const page1 = document.getElementById('page1');
+            if (page1) page1.insertBefore(notice, page1.children[1] || null);
+        } catch (e) {
+            console.warn('Restore failed', e);
+        }
+    }
+
+    // Auto-save when transcript changes
+    function autoSave() {
+        saveProjectToLocal();
+    }
 
     // ==================== PAGE NAVIGATION ====================
     function switchPage(pageNum) {
@@ -525,6 +584,7 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
             currentPage = 1;
             renderTranscript();
             updateAudioStats();
+            autoSave();
             switchPage(2);
 
         } catch (err) {
@@ -748,6 +808,7 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
         // Stay on the same page – just re-render
         renderTranscript();
         updateAudioStats();
+        autoSave();
     }
 
     function playSceneAudio(index) {
@@ -1057,12 +1118,34 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
             recorder.start(100);
 
             // ========== SCENE-BY-SCENE RENDERING ==========
-            // For each scene: seek video to that scene's start → play video segment
-            // while playing the matching audio. Then move to next scene.
-            // This effectively splits the video by scenes and recombines them.
-
-            let totalWallTime = sceneClips.reduce((sum, c) => sum + c.audioWallDuration, 0);
+            let totalWallTime = sceneClips.reduce((sum, c) => sum + c.audioWallDuration, 0) || 1;
             let elapsedWall = 0;
+
+            // Helper: safe seek
+            function safeSeek(video, time) {
+                return new Promise((resolve) => {
+                    const target = Math.max(0, Math.min(time, (video.duration || 9999) - 0.05));
+                    if (Math.abs(video.currentTime - target) < 0.05) {
+                        resolve();
+                        return;
+                    }
+                    let done = false;
+                    const finish = () => {
+                        if (done) return;
+                        done = true;
+                        video.removeEventListener('seeked', finish);
+                        resolve();
+                    };
+                    video.addEventListener('seeked', finish);
+                    try {
+                        video.currentTime = target;
+                    } catch (e) {
+                        finish();
+                    }
+                    // Timeout fallback
+                    setTimeout(finish, 800);
+                });
+            }
 
             for (let s = 0; s < sceneClips.length; s++) {
                 if (!isRendering) break;
@@ -1070,75 +1153,76 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
                 const clip = sceneClips[s];
                 const sceneNum = s + 1;
 
-                document.getElementById('renderTitle').textContent = `Scene ${sceneNum} / ${sceneClips.length} ကို ပြင်ဆင်နေပါသည်...`;
-                document.getElementById('renderDesc').textContent = `Video အပိုင်းကို ဖြတ်၍ အသံနှင့် ပေါင်းနေပါသည်`;
+                try {
+                    document.getElementById('renderTitle').textContent = `Scene ${sceneNum} / ${sceneClips.length} ကို ပြင်ဆင်နေပါသည်...`;
+                    document.getElementById('renderDesc').textContent = `Video အပိုင်းကို ဖြတ်၍ အသံနှင့် ပေါင်းနေပါသည်`;
 
-                // Seek video to the start of this scene
-                sourceVideo.currentTime = clip.videoStart;
+                    // Seek video to the start of this scene
+                    await safeSeek(sourceVideo, clip.videoStart);
 
-                await new Promise(resolve => {
-                    const onSeeked = () => {
-                        sourceVideo.removeEventListener('seeked', onSeeked);
-                        resolve();
-                    };
-                    sourceVideo.addEventListener('seeked', onSeeked);
-                    // Fallback in case seeked doesn't fire
-                    setTimeout(resolve, 400);
-                });
+                    // Start the audio for this scene
+                    const srcNode = audioCtx.createBufferSource();
+                    srcNode.buffer = clip.buffer;
+                    srcNode.playbackRate.value = clip.rate;
+                    srcNode.connect(destNode);
 
-                // Start the audio for this scene
-                const srcNode = audioCtx.createBufferSource();
-                srcNode.buffer = clip.buffer;
-                srcNode.playbackRate.value = clip.rate;
-                srcNode.connect(destNode);
-                srcNode.start(0);
+                    const sceneStartWall = performance.now();
+                    const targetDurationMs = Math.max(300, clip.audioWallDuration * 1000);
 
-                // Play the video for the duration of the audio
-                await sourceVideo.play();
+                    srcNode.start(0);
 
-                const sceneStartWall = performance.now();
-                const targetDurationMs = clip.audioWallDuration * 1000;
+                    // Play video (ignore play() promise rejection on some browsers)
+                    try { await sourceVideo.play(); } catch (e) { /* continue */ }
 
-                await new Promise(resolve => {
-                    function drawSceneFrame() {
-                        if (!isRendering) {
-                            resolve();
-                            return;
-                        }
-
-                        ctx.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
-
-                        const sceneElapsed = performance.now() - sceneStartWall;
-                        const overallPct = Math.min(99, 15 + ((elapsedWall + sceneElapsed / 1000) / totalWallTime) * 80);
-                        updateCircleProgress('renderCircle', 'renderPercent', overallPct);
-
-                        // Stop this scene when audio duration is reached
-                        // or when video reaches the original scene end (whichever comes first conceptually)
-                        if (sceneElapsed >= targetDurationMs) {
-                            sourceVideo.pause();
+                    await new Promise(resolve => {
+                        let finished = false;
+                        const finishScene = () => {
+                            if (finished) return;
+                            finished = true;
+                            try { sourceVideo.pause(); } catch(e) {}
                             try { srcNode.stop(); } catch(e) {}
                             resolve();
-                            return;
-                        }
+                        };
 
-                        // Also stop if video somehow ends
-                        if (sourceVideo.ended) {
-                            try { srcNode.stop(); } catch(e) {}
-                            resolve();
-                            return;
-                        }
+                        function drawSceneFrame() {
+                            if (!isRendering || finished) {
+                                finishScene();
+                                return;
+                            }
 
+                            try {
+                                ctx.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
+                            } catch (e) { /* ignore draw errors */ }
+
+                            const sceneElapsed = performance.now() - sceneStartWall;
+                            const overallPct = Math.min(99, 15 + ((elapsedWall + sceneElapsed / 1000) / totalWallTime) * 80);
+                            updateCircleProgress('renderCircle', 'renderPercent', overallPct);
+
+                            if (sceneElapsed >= targetDurationMs || sourceVideo.ended) {
+                                finishScene();
+                                return;
+                            }
+                            requestAnimationFrame(drawSceneFrame);
+                        }
                         requestAnimationFrame(drawSceneFrame);
-                    }
-                    requestAnimationFrame(drawSceneFrame);
-                });
 
-                elapsedWall += clip.audioWallDuration;
+                        // Absolute safety timeout for this scene
+                        setTimeout(finishScene, targetDurationMs + 1500);
+                    });
+
+                    elapsedWall += clip.audioWallDuration;
+                } catch (sceneErr) {
+                    console.warn(`Scene ${sceneNum} failed, skipping:`, sceneErr);
+                    // Continue to next scene instead of aborting everything
+                }
             }
+
+            // Small pause so last frames are captured
+            await new Promise(r => setTimeout(r, 200));
 
             // All scenes done → stop recorder
             if (recorder.state !== 'inactive') {
-                recorder.stop();
+                try { recorder.stop(); } catch(e) {}
             }
 
             const finalVideoBlob = await renderCompletePromise;
@@ -1168,8 +1252,11 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
         } catch (err) {
             console.error(err);
             isRendering = false;
-            alert('Video ထုတ်လုပ်ရာတွင် အမှားဖြစ်ပေါ်ပါသည်: ' + err.message);
+            const msg = err && err.message ? err.message : String(err);
+            alert('Video ထုတ်လုပ်ရာတွင် အမှားဖြစ်ပေါ်ပါသည်:\n' + msg + '\n\nထပ်မံကြိုးစားကြည့်ပါ။ Script စာမျက်နှာသို့ ပြန်သွားပါမယ်။');
             document.getElementById('renderStatusCard').classList.add('hidden');
+            // Keep project data so user doesn't lose work
+            autoSave();
             switchPage(2);
         }
     }
@@ -1289,6 +1376,7 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
         // Also update the editor side label if exists
         const editorLabel = document.getElementById(`speedLabel-${index}`);
         if (editorLabel) editorLabel.textContent = speed.toFixed(2) + 'x';
+        autoSave();
     }
 </script>
 </body>
