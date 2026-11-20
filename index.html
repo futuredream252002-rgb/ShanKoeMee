@@ -155,7 +155,7 @@
                 <span>📂 အသံ အများကြီး တင်မယ်</span>
             </button>
             <button onclick="goToVideoEditPage()" class="gold-btn font-bold py-3.5 rounded-2xl text-sm transition shadow-lg flex items-center justify-center gap-2">
-                <span>🎬 Video Edit</span>
+                <span>🎬 Video ထုတ်မယ်</span>
             </button>
         </div>
         <p class="text-[11px] text-slate-400 text-center -mt-1">
@@ -186,7 +186,7 @@
             <button onclick="cancelVideoRenderAndBack()" class="outline-btn px-4 py-2 rounded-full text-xs font-medium flex items-center gap-1.5 hover:border-amber-400/50 transition">
                 <span>‹ နောက်သို့</span>
             </button>
-            <h1 class="text-lg font-bold text-amber-400">Video Edit</h1>
+            <h1 class="text-lg font-bold text-amber-400">Video ထုတ်လုပ်ခြင်း</h1>
             <div class="w-16"></div>
         </div>
 
@@ -262,9 +262,6 @@
                 💾 Video ဖိုင် သိမ်းမည် (Download)
             </a>
 
-            <button onclick="backToEditor()" class="w-full outline-btn py-3 rounded-2xl text-xs font-semibold">
-                Edit စာမျက်နှာသို့ ပြန်သွားမည်
-            </button>
             <button onclick="switchPage(2)" class="w-full outline-btn py-3 rounded-2xl text-xs font-semibold">
                 Script စာမျက်နှာသို့ ပြန်သွားမည်
             </button>
@@ -840,19 +837,14 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
             return alert('မူရင်း Video ဖိုင် မရှိတော့ပါ။');
         }
 
-        // Show editor first
+        // Skip the speed editor page – go directly to rendering
         switchPage(3);
-        document.getElementById('editorSection').classList.remove('hidden');
+        document.getElementById('editorSection').classList.add('hidden');
         document.getElementById('renderStatusCard').classList.add('hidden');
         document.getElementById('finalVideoCard').classList.add('hidden');
 
-        // Setup video preview
-        const editorVideo = document.getElementById('editorVideoPreview');
-        editorVideo.src = selectedVideoUrl;
-        editorVideo.muted = true;
-
-        selectedEditorIndex = null;
-        renderEditorScenes();
+        // Start render immediately
+        startVideoRender();
     }
 
     function renderEditorScenes() {
@@ -985,10 +977,8 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const destNode = audioCtx.createMediaStreamDestination();
 
-            // ========== STRICT SEQUENTIAL AUDIO (no overlap) ==========
-            // Play each audio fully one after another.
-            // Next audio starts only after the previous one has completely finished.
-            const scheduledClips = [];
+            // Prepare scene clips: video segment + matching audio
+            const sceneClips = [];
             for (let i = 0; i < transcriptData.length; i++) {
                 const item = transcriptData[i];
                 if (!item.audioFile) continue;
@@ -996,26 +986,32 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
                 const arrBuf = await item.audioFile.arrayBuffer();
                 const audioBuf = await audioCtx.decodeAudioData(arrBuf);
                 const rate = (typeof item.speed === 'number' && item.speed > 0) ? item.speed : 1.0;
+                const timing = getSceneTiming(item);
+                const wallAudioDur = audioBuf.duration / rate;
 
-                scheduledClips.push({
+                sceneClips.push({
+                    index: i,
                     buffer: audioBuf,
                     rate: rate,
-                    originalIndex: i
+                    videoStart: timing.start,
+                    videoEnd: timing.end,
+                    audioWallDuration: wallAudioDur
                 });
             }
 
-            // Keep original order (scene order)
-            // Do NOT sort by timestamp – we force sequential playback
+            if (sceneClips.length === 0) throw new Error('အသံဖိုင် မရှိပါ');
 
-            updateCircleProgress('renderCircle', 'renderPercent', 20);
-            document.getElementById('renderTitle').textContent = "Video နှင့် အသံ ပေါင်းစပ်ထုတ်လုပ်နေပါသည်...";
+            updateCircleProgress('renderCircle', 'renderPercent', 15);
+            document.getElementById('renderTitle').textContent = "Scene အလိုက် Video ပိုင်းနေပါသည်...";
+            document.getElementById('renderDesc').textContent = "Scene တစ်ခုချင်းစီကို ဖြတ်၍ အသံနှင့် ပေါင်းစည်းနေပါသည်";
 
-            // Create hidden video element (MUTED to strip original audio)
+            // Create hidden video element (MUTED)
             const sourceVideo = document.createElement('video');
             sourceVideo.src = selectedVideoUrl;
             sourceVideo.muted = true;
             sourceVideo.playsInline = true;
             sourceVideo.crossOrigin = "anonymous";
+            sourceVideo.preload = "auto";
 
             await new Promise((resolve, reject) => {
                 sourceVideo.onloadedmetadata = resolve;
@@ -1052,60 +1048,100 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
 
             const renderCompletePromise = new Promise((resolve) => {
                 recorder.onstop = () => {
-                    const finalBlob = new Blob(chunks, { type: mimeType.includes('webm') ? 'video/webm' : 'video/mp4' });
+                    const finalBlob = new Blob(chunks, { type: 'video/webm' });
                     resolve(finalBlob);
                 };
             });
 
-            // Start playback & schedule new audio tracks SEQUENTIALLY
             await audioCtx.resume();
-            sourceVideo.currentTime = 0;
             recorder.start(100);
-            await sourceVideo.play();
 
-            const baseAudioTime = audioCtx.currentTime;
-            let nextStartTime = 0; // cumulative wall-clock time
+            // ========== SCENE-BY-SCENE RENDERING ==========
+            // For each scene: seek video to that scene's start → play video segment
+            // while playing the matching audio. Then move to next scene.
+            // This effectively splits the video by scenes and recombines them.
 
-            for (const clip of scheduledClips) {
+            let totalWallTime = sceneClips.reduce((sum, c) => sum + c.audioWallDuration, 0);
+            let elapsedWall = 0;
+
+            for (let s = 0; s < sceneClips.length; s++) {
+                if (!isRendering) break;
+
+                const clip = sceneClips[s];
+                const sceneNum = s + 1;
+
+                document.getElementById('renderTitle').textContent = `Scene ${sceneNum} / ${sceneClips.length} ကို ပြင်ဆင်နေပါသည်...`;
+                document.getElementById('renderDesc').textContent = `Video အပိုင်းကို ဖြတ်၍ အသံနှင့် ပေါင်းနေပါသည်`;
+
+                // Seek video to the start of this scene
+                sourceVideo.currentTime = clip.videoStart;
+
+                await new Promise(resolve => {
+                    const onSeeked = () => {
+                        sourceVideo.removeEventListener('seeked', onSeeked);
+                        resolve();
+                    };
+                    sourceVideo.addEventListener('seeked', onSeeked);
+                    // Fallback in case seeked doesn't fire
+                    setTimeout(resolve, 400);
+                });
+
+                // Start the audio for this scene
                 const srcNode = audioCtx.createBufferSource();
                 srcNode.buffer = clip.buffer;
                 srcNode.playbackRate.value = clip.rate;
                 srcNode.connect(destNode);
+                srcNode.start(0);
 
-                // Play the FULL audio buffer
-                // Wall-clock duration = buffer.duration / rate
-                const wallDuration = clip.buffer.duration / clip.rate;
+                // Play the video for the duration of the audio
+                await sourceVideo.play();
 
-                srcNode.start(baseAudioTime + nextStartTime, 0);
+                const sceneStartWall = performance.now();
+                const targetDurationMs = clip.audioWallDuration * 1000;
 
-                // Next audio starts only after this one finishes
-                nextStartTime += wallDuration;
+                await new Promise(resolve => {
+                    function drawSceneFrame() {
+                        if (!isRendering) {
+                            resolve();
+                            return;
+                        }
+
+                        ctx.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
+
+                        const sceneElapsed = performance.now() - sceneStartWall;
+                        const overallPct = Math.min(99, 15 + ((elapsedWall + sceneElapsed / 1000) / totalWallTime) * 80);
+                        updateCircleProgress('renderCircle', 'renderPercent', overallPct);
+
+                        // Stop this scene when audio duration is reached
+                        // or when video reaches the original scene end (whichever comes first conceptually)
+                        if (sceneElapsed >= targetDurationMs) {
+                            sourceVideo.pause();
+                            try { srcNode.stop(); } catch(e) {}
+                            resolve();
+                            return;
+                        }
+
+                        // Also stop if video somehow ends
+                        if (sourceVideo.ended) {
+                            try { srcNode.stop(); } catch(e) {}
+                            resolve();
+                            return;
+                        }
+
+                        requestAnimationFrame(drawSceneFrame);
+                    }
+                    requestAnimationFrame(drawSceneFrame);
+                });
+
+                elapsedWall += clip.audioWallDuration;
             }
 
-            const totalDuration = sourceVideo.duration || 1;
-
-            function drawFrame() {
-                if (!isRendering) return;
-                if (sourceVideo.paused || sourceVideo.ended) {
-                    if (recorder.state !== 'inactive') recorder.stop();
-                    return;
-                }
-                ctx.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
-                const pct = Math.min(99, 20 + (sourceVideo.currentTime / totalDuration) * 79);
-                updateCircleProgress('renderCircle', 'renderPercent', pct);
-                requestAnimationFrame(drawFrame);
+            // All scenes done → stop recorder
+            if (recorder.state !== 'inactive') {
+                recorder.stop();
             }
-            requestAnimationFrame(drawFrame);
-
-            // Safety timeout: force stop a bit after video ends
-            const safetyTimer = setTimeout(() => {
-                if (isRendering && recorder.state !== 'inactive') {
-                    try { recorder.stop(); } catch(e) {}
-                }
-            }, (totalDuration + 2) * 1000);
 
             const finalVideoBlob = await renderCompletePromise;
-            clearTimeout(safetyTimer);
             if (!isRendering) return;
 
             updateCircleProgress('renderCircle', 'renderPercent', 100);
@@ -1127,15 +1163,14 @@ Return ONLY a valid JSON array (no markdown, no extra text) with this exact stru
             document.getElementById('renderStatusCard').classList.add('hidden');
             document.getElementById('finalVideoCard').classList.remove('hidden');
             isRendering = false;
-            showToast('🎬 Video ထုတ်လုပ်ပြီးပါပြီ • Download လုပ်နိုင်ပါပြီ');
+            showToast('🎬 Scene အလိုက် ပိုင်းပြီး Video ထုတ်လုပ်ပြီးပါပြီ');
 
         } catch (err) {
             console.error(err);
             isRendering = false;
             alert('Video ထုတ်လုပ်ရာတွင် အမှားဖြစ်ပေါ်ပါသည်: ' + err.message);
-            // Return to editor so user can try again
             document.getElementById('renderStatusCard').classList.add('hidden');
-            document.getElementById('editorSection').classList.remove('hidden');
+            switchPage(2);
         }
     }
 
